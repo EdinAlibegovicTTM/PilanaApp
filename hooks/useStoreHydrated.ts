@@ -13,11 +13,11 @@ export default function useStoreHydrated() {
       return;
     }
     
-    // Timeout da se izađe iz loading stanja ako se store ne rehidrira
+    // Brži timeout - 1 sekunda umjesto 3
     const timeout = setTimeout(() => {
       console.log('[useStoreHydrated] Timeout - postavljam hydrated na true');
       setHydrated(true);
-    }, 3000); // Povećano na 3 sekunde za debugging
+    }, 1000);
     
     // Čekaj dok Zustand ne rehidrira store iz localStorage
     const unsub = useAppStore.persist.onFinishHydration(() => {
@@ -36,21 +36,16 @@ export default function useStoreHydrated() {
     // Dodatna provjera - ako localStorage postoji, možemo pretpostaviti da je hydrated
     const storage = localStorage.getItem('pilana-app-storage');
     if (storage) {
-      console.log('[useStoreHydrated] localStorage postoji:', storage);
-      setTimeout(() => {
-        if (!hydrated) {
-          console.log('[useStoreHydrated] Force setting hydrated from localStorage');
-          clearTimeout(timeout);
-          setHydrated(true);
-        }
-      }, 1000);
+      console.log('[useStoreHydrated] localStorage postoji, postavljam hydrated');
+      clearTimeout(timeout);
+      setHydrated(true);
     }
     
     return () => {
       clearTimeout(timeout);
       unsub();
     };
-  }, [hydrated]);
+  }, []); // Uklonjen hydrated dependency da se izbjegne infinite loop
 
   console.log('[useStoreHydrated] Return value:', hydrated);
   return hydrated;

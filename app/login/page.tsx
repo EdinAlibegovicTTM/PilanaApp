@@ -5,27 +5,19 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import useAppStore from "@/store/appStore";
-import useStoreHydrated from "@/hooks/useStoreHydrated";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { setCurrentUser, currentUser } = useAppStore();
-  const isHydrated = useStoreHydrated();
 
   useEffect(() => {
-    // Ako je već prijavljen, idi na dashboard
-    if (isHydrated && currentUser) {
-      router.push("/dashboard");
-    }
-  }, [isHydrated, currentUser, router]);
-
-  // Automatska validacija tokena ako postoji
-  useEffect(() => {
-    if (!isHydrated) return;
+    setIsClient(true);
     
+    // Provjeri da li je već prijavljen
     const token = localStorage.getItem("token");
     if (token && !currentUser) {
       // Pokušaj validirati postojeći token
@@ -42,7 +34,7 @@ export default function LoginPage() {
         localStorage.removeItem("token");
       });
     }
-  }, [isHydrated, currentUser, setCurrentUser, router]);
+  }, [currentUser, setCurrentUser, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,8 +60,8 @@ export default function LoginPage() {
     }
   };
 
-  // Ako nije hydrated, prikaži loading
-  if (!isHydrated) {
+  // Ako nije client-side, prikaži loading
+  if (!isClient) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>

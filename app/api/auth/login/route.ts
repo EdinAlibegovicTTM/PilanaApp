@@ -44,8 +44,16 @@ export async function POST(request: NextRequest) {
       { expiresIn: '24h' }
     );
 
+    // Dodaj permissions na osnovu role
+    let permissions: string[] = [];
+    if (user.role === 'admin' || user.role === 'manager') {
+      permissions = ['forms', 'reports'];
+    } else if (user.role === 'user') {
+      permissions = ['forms'];
+    }
+
     return NextResponse.json({
-      user: { id: user.id, username: user.username, role: user.role },
+      user: { id: user.id, username: user.username, role: user.role, permissions },
       token
     });
 

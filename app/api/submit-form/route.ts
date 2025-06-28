@@ -4,22 +4,35 @@ import prisma from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { formId, data } = body;
+    const { formId, formName, submittedBy, values, fields, sheetTab } = body;
 
-    if (!formId || !data) {
+    if (!formId || !values) {
       return NextResponse.json(
-        { error: 'Form ID i data su obavezni' },
+        { error: 'Form ID i values su obavezni' },
         { status: 400 }
       );
     }
 
     // Privremeno rješenje - samo spremi u bazu bez Google Sheets
-    console.log('[SUBMIT_FORM] Forma poslana:', { formId, data });
+    console.log('[SUBMIT_FORM] Forma poslana:', { 
+      formId, 
+      formName, 
+      submittedBy, 
+      values, 
+      fields: fields?.length || 0,
+      sheetTab 
+    });
     
     return NextResponse.json({
       success: true,
       message: 'Forma uspješno poslana (privremeno rješenje)',
-      data: data
+      data: {
+        formId,
+        formName,
+        submittedBy,
+        values,
+        submittedAt: new Date().toISOString()
+      }
     });
 
   } catch (error) {

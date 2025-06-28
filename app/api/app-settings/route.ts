@@ -1,0 +1,228 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'tajna_jwt_lozinka';
+const prisma = new PrismaClient();
+
+// Helper funkcija za autorizaciju
+async function verifyAuth(req: NextRequest, requireAdmin = true) {
+  try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { error: 'Nedostaje Authorization header.', status: 401 };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // Provjeri da li korisnik postoji i da li je aktivan
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id }
+    });
+
+    if (!user || !user.isActive) {
+      return { error: 'Korisnik nije pronađen ili je deaktiviran.', status: 401 };
+    }
+
+    if (requireAdmin && user.role !== 'admin') {
+      return { error: 'Nemate dozvolu za pristup podešavanjima.', status: 403 };
+    }
+
+    return { user };
+  } catch (error) {
+    console.error('[AUTH] Greška pri verifikaciji:', error);
+    return { error: 'Neispravan token.', status: 401 };
+  }
+}
+
+// Helper funkcija za validaciju podataka
+function validateSettings(data: any) {
+  const errors: string[] = [];
+
+  if (data.exportSheetTab && typeof data.exportSheetTab !== 'string') {
+    errors.push('exportSheetTab mora biti string');
+  }
+
+  if (data.importSheetTab && typeof data.importSheetTab !== 'string') {
+    errors.push('importSheetTab mora biti string');
+  }
+
+  if (data.globalLogo && typeof data.globalLogo !== 'string') {
+    errors.push('globalLogo mora biti string');
+  }
+
+  if (data.appIcon && typeof data.appIcon !== 'string') {
+    errors.push('appIcon mora biti string');
+  }
+
+  if (data.logoLocations) {
+    try {
+      if (typeof data.logoLocations === 'string') {
+        JSON.parse(data.logoLocations);
+      } else if (!Array.isArray(data.logoLocations)) {
+        errors.push('logoLocations mora biti string ili array');
+      }
+    } catch {
+      errors.push('logoLocations nije validan JSON');
+    }
+  }
+
+  return errors;
+}
+
+// Dohvati trenutna podešavanja aplikacije
+export async function GET(req: NextRequest) {
+  try {
+    console.log('[API GET /app-settings] Zahtjev za dohvatanje podešavanja');
+
+    // Autorizacija (dozvoli bilo kojem aktivnom korisniku)
+    const auth = await verifyAuth(req, false);
+    if ('error' in auth) {
+      console.log('[API GET /app-settings] Autorizacija neuspješna:', auth.error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    console.log('[API GET /app-settings] Korisnik autorizovan:', auth.user.username);
+
+    let settings = await prisma.appSettings.findUnique({
+      where: { id: 1 },
+    });
+
+    // Ako podešavanja ne postoje, kreiraj ih sa default vrijednostima
+    if (!settings) {
+      console.log('[API GET /app-settings] Kreiranje default podešavanja');
+      settings = await prisma.appSettings.create({
+        data: {
+          id: 1,
+          globalLogo: null,
+          exportSheetTab: 'Export',
+          importSheetTab: 'Import',
+          logoLocations: '[]',
+          appIcon: null,
+        } as any,
+      });
+      console.log('[API GET /app-settings] Default podešavanja kreirana');
+    }
+
+    console.log('[API GET /app-settings] Podešavanja uspješno dohvaćena');
+    return NextResponse.json(settings);
+  } catch (error) {
+    console.error('[API GET /app-settings] Greška pri dohvatanju podešavanja:', error);
+    return NextResponse.json({ 
+      error: 'Greška pri dohvatanju podešavanja.',
+      details: error instanceof Error ? error.message : 'Nepoznata greška'
+    }, { status: 500 });
+  }
+}
+
+// Ažuriraj podešavanja aplikacije
+export async function POST(req: NextRequest) {
+  try {
+    console.log('[API POST /app-settings] Zahtjev za ažuriranje podešavanja');
+
+    // Autorizacija (samo admin)
+    const auth = await verifyAuth(req);
+    if ('error' in auth) {
+      console.log('[API POST /app-settings] Autorizacija neuspješna:', auth.error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    console.log('[API POST /app-settings] Korisnik autorizovan:', auth.user.username);
+
+    // Parsiranje body-ja
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error('[API POST /app-settings] Nevalidan JSON body:', parseError);
+      return NextResponse.json({ error: 'Nevalidan JSON body.' }, { status: 400 });
+    }
+
+    console.log('[API POST /app-settings] Primljeni podaci:', body);
+
+    // Validacija podataka
+    const validationErrors = validateSettings(body);
+    if (validationErrors.length > 0) {
+      console.error('[API POST /app-settings] Validacijske greške:', validationErrors);
+      return NextResponse.json({ 
+        error: 'Nevalidni podaci.',
+        details: validationErrors
+      }, { status: 400 });
+    }
+
+    const { globalLogo, exportSheetTab, importSheetTab, logoLocations, appIcon } = body;
+
+    // Provjera obaveznih polja
+    if (!exportSheetTab || !importSheetTab) {
+      console.error('[API POST /app-settings] Nedostaju obavezna polja');
+      return NextResponse.json({ 
+        error: 'Nedostaju obavezna polja.',
+        details: ['exportSheetTab i importSheetTab su obavezni']
+      }, { status: 400 });
+    }
+
+    // Priprema podataka za čuvanje
+    const settingsData = {
+      globalLogo: globalLogo || null,
+      exportSheetTab: exportSheetTab.trim(),
+      importSheetTab: importSheetTab.trim(),
+      logoLocations: typeof logoLocations === 'string' ? logoLocations : JSON.stringify(logoLocations || []),
+      appIcon: appIcon || null,
+    };
+
+    console.log('[API POST /app-settings] Podaci za čuvanje:', settingsData);
+
+    const updatedSettings = await prisma.appSettings.upsert({
+      where: { id: 1 },
+      update: settingsData as any,
+      create: {
+        id: 1,
+        globalLogo: settingsData.globalLogo,
+        exportSheetTab: settingsData.exportSheetTab,
+        importSheetTab: settingsData.importSheetTab,
+        logoLocations: settingsData.logoLocations,
+        appIcon: settingsData.appIcon,
+      } as any,
+    });
+
+    console.log('[API POST /app-settings] Podešavanja uspješno sačuvana:', updatedSettings);
+    return NextResponse.json(updatedSettings);
+  } catch (error) {
+    console.error('[API POST /app-settings] Greška pri čuvanju podešavanja:', error);
+    
+    // Specifične Prisma greške
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json({ 
+          error: 'Podešavanja već postoje.',
+          details: 'Pokušajte ažuriranje umjesto kreiranja'
+        }, { status: 409 });
+      }
+      
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json({ 
+          error: 'Neispravni podaci.',
+          details: 'Provjerite referencirane podatke'
+        }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json({ 
+      error: 'Greška pri čuvanju podešavanja.',
+      details: error instanceof Error ? error.message : 'Nepoznata greška'
+    }, { status: 500 });
+  }
+}
+
+// OPTIONS za CORS
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+} 

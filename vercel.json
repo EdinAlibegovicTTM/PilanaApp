@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "env": {
+    "DATABASE_URL": "postgresql://pilanaapp_owner:npg_dfnm7lO5HrYu@ep-still-breeze-a86b92ss-pooler.eastus2.azure.neon.tech/pilanaapp?sslmode=require"
+  }
+} 

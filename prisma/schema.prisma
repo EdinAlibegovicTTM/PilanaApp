@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  username String  @unique
+  password String
+  isActive Boolean @default(true)
+  role     String
+  ime      String?
+  prezime  String?
+  telefon  String?
+}
+
+model Form {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String?
+  backgroundColor String?
+  fields          String?
+  allowedUsers    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  isActive        Boolean  @default(true)
+  image           String?
+}
+
+model AppSettings {
+  id             Int     @id @default(1)
+  globalLogo     String?
+  exportSheetTab String?
+  importSheetTab String?
+  logoLocations  String?
+  appIcon        String?
+}
+
+model ReportTemplate {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  thumbnail      String?
+  googleSheetId  String?
+  googleSheetName String?
+  parameters     String
+  sections       String
+  allowedUsers   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      Int?
+}

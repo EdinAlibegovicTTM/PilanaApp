@@ -19,6 +19,7 @@ export default function FormPage() {
   const [form, setForm] = useState<FormConfig | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const params = useParams();
   const router = useRouter();
   const { id } = params;
@@ -136,11 +137,12 @@ export default function FormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !form) {
+    if (!currentUser || !form || isSubmitting) {
         toast.error("Morate biti prijavljeni ili forma nije učitana.");
         return;
     }
 
+    setIsSubmitting(true);
     console.log('[FormPage] handleSubmit - početak');
     console.log('[FormPage] handleSubmit - currentUser:', currentUser.username);
     console.log('[FormPage] handleSubmit - token postoji:', !!localStorage.getItem('token'));
@@ -154,6 +156,7 @@ export default function FormPage() {
       
       if (!settings.exportSheetTab) {
         toast.error('Nije podešen tab za eksport u podešavanjima.');
+        setIsSubmitting(false);
         return;
       }
 
@@ -181,6 +184,7 @@ export default function FormPage() {
         } catch (locationError) {
           console.error('[FormPage] handleSubmit - greška pri dohvatanju lokacije:', locationError);
           toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
+          setIsSubmitting(false);
           return;
         }
       }
@@ -208,11 +212,24 @@ export default function FormPage() {
       await axios.post('/api/submit-form', payload);
       console.log('[FormPage] handleSubmit - /api/submit-form uspješan');
       toast.success('Forma je uspješno poslana!');
+      
+      // Nakon uspješnog slanja, obriši sadržaj polja koja nisu permanent i nisu skrivena
+      const newFormData = { ...updatedFormData };
+      form.fields.forEach(field => {
+        if (!field.options.permanent && !field.options.hidden) {
+          // Vrati na default vrijednost ako postoji, inače prazan string
+          newFormData[field.name] = field.options.defaultValue || '';
+        }
+      });
+      setFormData(newFormData);
+      
       router.push('/forms');
     } catch (error) {
         console.error('[FormPage] handleSubmit - greška:', error);
         const errorMessage = (error as any).response?.data?.error || 'Došlo je do greške prilikom slanja forme.';
         toast.error(errorMessage);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -365,9 +382,14 @@ export default function FormPage() {
                   <div className="flex items-center gap-4 pt-4 no-print no-print-pdf">
                     <button 
                         type="submit" 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                        disabled={isSubmitting}
+                        className={`w-full font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out ${
+                          isSubmitting 
+                            ? 'bg-gray-400 cursor-not-allowed text-white' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
                     >
-                      Pošalji
+                      {isSubmitting ? 'Slanje...' : 'Pošalji'}
                     </button>
                     <button 
                         type="button"

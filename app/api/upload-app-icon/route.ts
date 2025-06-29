@@ -26,30 +26,41 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     
     let publicUrl: string;
+    let storageType: string;
 
-    // Provjeri da li je Firebase Storage dostupan
+    // Provjeri da li je Firebase Storage dostupan i pokušaj upload
     if (firebaseStorage) {
-      // Koristi Firebase Storage
-      const filename = `icons/app-icon-${uuidv4()}.png`;
-      const bucket = firebaseStorage.bucket();
-      const fileRef = bucket.file(filename);
-      
-      await fileRef.save(buffer, {
-        metadata: {
-          contentType: file.type,
+      try {
+        // Koristi Firebase Storage
+        const filename = `icons/app-icon-${uuidv4()}.png`;
+        const bucket = firebaseStorage.bucket();
+        const fileRef = bucket.file(filename);
+        
+        await fileRef.save(buffer, {
           metadata: {
-            originalName: file.name,
-            uploadedAt: new Date().toISOString(),
-            type: 'app-icon'
+            contentType: file.type,
+            metadata: {
+              originalName: file.name,
+              uploadedAt: new Date().toISOString(),
+              type: 'app-icon'
+            }
           }
-        }
-      });
+        });
 
-      publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+        publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+        storageType = 'firebase';
+      } catch (firebaseError) {
+        console.error('Firebase Storage greška, koristi se base64 fallback:', firebaseError);
+        // Fallback na base64 encoding ako Firebase ne radi
+        const base64Data = buffer.toString('base64');
+        publicUrl = `data:${file.type};base64,${base64Data}`;
+        storageType = 'base64';
+      }
     } else {
-      // Fallback: koristi base64 encoding
+      // Firebase nije konfigurisan, koristi base64 encoding
       const base64Data = buffer.toString('base64');
       publicUrl = `data:${file.type};base64,${base64Data}`;
+      storageType = 'base64';
     }
 
     // Ažuriraj app-settings sa novom ikonicom
@@ -76,7 +87,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ 
       url: publicUrl,
-      message: 'Ikonica uspješno postavljena!'
+      storage: storageType,
+      message: storageType === 'base64' 
+        ? 'Ikonica uspješno postavljena! (Koristi se base64 encoding jer Firebase nije dostupan)'
+        : 'Ikonica uspješno postavljena!'
     });
     
   } catch (error) {

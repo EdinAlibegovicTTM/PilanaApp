@@ -56,33 +56,50 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
     // Kreiraj buffer iz fajla
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Provjeri da li je Firebase Storage dostupan
+    // Provjeri da li je Firebase Storage dostupan i pokušaj upload
     if (firebaseStorage) {
-      // Koristi Firebase Storage
-      const filename = `uploads/${uuidv4()}.${ext}`;
-      const bucket = firebaseStorage.bucket();
-      const fileRef = bucket.file(filename);
-      
-      await fileRef.save(buffer, {
-        metadata: {
-          contentType: file.type,
+      try {
+        // Koristi Firebase Storage
+        const filename = `uploads/${uuidv4()}.${ext}`;
+        const bucket = firebaseStorage.bucket();
+        const fileRef = bucket.file(filename);
+        
+        await fileRef.save(buffer, {
           metadata: {
-            originalName: fileName,
-            uploadedAt: new Date().toISOString()
+            contentType: file.type,
+            metadata: {
+              originalName: fileName,
+              uploadedAt: new Date().toISOString()
+            }
           }
-        }
-      });
+        });
 
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-      
-      return NextResponse.json({ 
-        url: publicUrl,
-        filename: filename,
-        size: file.size,
-        type: file.type
-      });
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+        
+        return NextResponse.json({ 
+          url: publicUrl,
+          filename: filename,
+          size: file.size,
+          type: file.type,
+          storage: 'firebase'
+        });
+      } catch (firebaseError) {
+        console.error('Firebase Storage greška, koristi se base64 fallback:', firebaseError);
+        // Fallback na base64 encoding ako Firebase ne radi
+        const base64Data = buffer.toString('base64');
+        const dataUrl = `data:${file.type};base64,${base64Data}`;
+        
+        return NextResponse.json({ 
+          url: dataUrl,
+          filename: `${uuidv4()}.${ext}`,
+          size: file.size,
+          type: file.type,
+          storage: 'base64',
+          note: 'Firebase Storage nije dostupan, koristi se base64 encoding'
+        });
+      }
     } else {
-      // Fallback: koristi base64 encoding
+      // Firebase nije konfigurisan, koristi base64 encoding
       const base64Data = buffer.toString('base64');
       const dataUrl = `data:${file.type};base64,${base64Data}`;
       
@@ -91,6 +108,7 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
         filename: `${uuidv4()}.${ext}`,
         size: file.size,
         type: file.type,
+        storage: 'base64',
         note: 'Firebase Storage nije konfigurisan, koristi se base64 encoding'
       });
     }

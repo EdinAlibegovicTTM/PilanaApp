@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import useAppStore from "@/store/appStore";
 
 export default function useStoreHydrated() {
-  const [hydrated, setHydrated] = useState(false);
+  // TEST: Odmah postavi hydrated na true
+  const [hydrated, setHydrated] = useState(true);
 
   useEffect(() => {
     console.log('[useStoreHydrated] useEffect pokrenut');

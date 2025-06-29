@@ -21,11 +21,9 @@ export default function EditUserPage() {
 
   useEffect(() => {
     if (!id) return;
-    console.log('[EditUserPage] Učitavanje korisnika, ID:', id);
     fetch(`/api/users/${id}`)
       .then(res => res.json())
       .then(data => {
-        console.log('[EditUserPage] Korisnik učitán:', data);
         setUser(data);
         setUsername(data.username || "");
         setRole(data.role || "user");
@@ -34,7 +32,7 @@ export default function EditUserPage() {
         setTelefon(data.telefon || "");
       })
       .catch(error => {
-        console.error('[EditUserPage] Greška pri učitavanju korisnika:', error);
+        console.error('Greška pri učitavanju korisnika:', error);
       });
   }, [id]);
 
@@ -44,13 +42,9 @@ export default function EditUserPage() {
     setSuccess("");
     setLoading(true);
     
-    console.log('[EditUserPage] Slanje zahtjeva za ažuriranje, ID:', id);
-    
     try {
       const body: any = { username, role, ime, prezime, telefon };
       if (password) body.password = password;
-      
-      console.log('[EditUserPage] Podaci za slanje:', body);
       
       const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
@@ -58,8 +52,6 @@ export default function EditUserPage() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      
-      console.log('[EditUserPage] Response status:', res.status, 'data:', data);
       
       if (!res.ok) {
         setError(data.error || "Greška pri izmjeni korisnika.");
@@ -70,7 +62,7 @@ export default function EditUserPage() {
       setLoading(false);
       setTimeout(() => router.push('/users'), 1000);
     } catch (err) {
-      console.error('[EditUserPage] Greška pri slanju zahtjeva:', err);
+      console.error('Greška pri slanju zahtjeva:', err);
       setError("Greška pri izmjeni korisnika.");
       setLoading(false);
     }

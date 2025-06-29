@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ user: responseUser, valid: true });
   } catch (error) {
-    console.error('[VERIFY] Greška pri verifikaciji tokena:', error);
+    console.error('Greška pri verifikaciji tokena:', error);
     return NextResponse.json({ error: 'Neispravan token.' }, { status: 401 });
   }
 } 

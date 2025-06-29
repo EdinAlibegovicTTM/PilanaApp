@@ -34,9 +34,7 @@ export default function FormPage() {
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Čekamo da currentUser bude dostupan iz store-a
     if (!currentUser) {
-        // Možemo prikazati loading ili jednostavno sačekati da se pojavi
         return;
     }
     
@@ -58,7 +56,6 @@ export default function FormPage() {
           const initialData: Record<string, any> = {};
           if (fetchedForm.fields && Array.isArray(fetchedForm.fields)) {
             fetchedForm.fields.forEach((field: FormField) => {
-              // Postavi default vrijednost ako postoji, inače prazan string
               initialData[field.name] = field.options.defaultValue || '';
             });
           }
@@ -148,15 +145,9 @@ export default function FormPage() {
     }
 
     setIsSubmitting(true);
-    console.log('[FormPage] handleSubmit - početak');
-    console.log('[FormPage] handleSubmit - currentUser:', currentUser.username);
-    console.log('[FormPage] handleSubmit - token postoji:', !!localStorage.getItem('token'));
 
     try {
-      // Dohvati globalna podešavanja
-      console.log('[FormPage] handleSubmit - pozivam /api/app-settings');
       const settingsResponse = await axios.get('/api/app-settings');
-      console.log('[FormPage] handleSubmit - /api/app-settings uspješan');
       const settings = settingsResponse.data;
       
       if (!settings.exportSheetTab) {
@@ -165,7 +156,6 @@ export default function FormPage() {
         return;
       }
 
-      // Dohvati lokaciju za sva geolocation polja
       const updatedFormData = { ...formData };
       const geolocationFields = form.fields.filter(field => field.type === 'geolocation');
       
@@ -186,16 +176,14 @@ export default function FormPage() {
             geolocationFields.forEach(field => {
               updatedFormData[field.name] = locationString;
             });
-            
-            console.log('[FormPage] handleSubmit - lokacija dohvaćena:', locationString);
           } catch (locationError) {
-            console.error('[FormPage] handleSubmit - greška pri dohvatanju lokacije:', locationError);
+            console.error('Greška pri dohvatanju lokacije:', locationError);
             toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
             setIsSubmitting(false);
             return;
           }
         } else {
-          console.warn('[FormPage] handleSubmit - geolokacija nije podržana');
+          console.warn('Geolokacija nije podržana');
           toast.error('Geolokacija nije podržana u ovom browseru.');
           setIsSubmitting(false);
           return;
@@ -221,9 +209,7 @@ export default function FormPage() {
           sheetTab: settings.exportSheetTab // Koristi globalno podešavanje
       };
 
-      console.log('[FormPage] handleSubmit - pozivam /api/submit-form');
       await axios.post('/api/submit-form', payload);
-      console.log('[FormPage] handleSubmit - /api/submit-form uspješan');
       toast.success('Forma je uspješno poslana!');
       
       // Nakon uspješnog slanja, obriši sadržaj polja koja nisu permanent i nisu skrivena
@@ -238,7 +224,7 @@ export default function FormPage() {
       
       router.push('/forms');
     } catch (error) {
-        console.error('[FormPage] handleSubmit - greška:', error);
+        console.error('Greška:', error);
         const errorMessage = (error as any).response?.data?.error || 'Došlo je do greške prilikom slanja forme.';
         toast.error(errorMessage);
     } finally {

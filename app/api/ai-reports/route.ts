@@ -203,6 +203,7 @@ async function generateAIReport(prompt: string, headers: string[], data: string[
       }
     ],
     parameters: generateParameters(analysis, headers),
+    summary: generateSummary(analysis, data)
   };
 
   return report;

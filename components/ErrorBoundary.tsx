@@ -17,13 +17,7 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false
   };
 
-  constructor(props: Props) {
-    super(props);
-    console.log('ERROR BOUNDARY CONSTRUCTOR - TEST');
-  }
-
   public static getDerivedStateFromError(error: Error): State {
-    console.log('ERROR BOUNDARY CAUGHT ERROR:', error);
     return { hasError: true, error };
   }
 
@@ -32,15 +26,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = () => {
-    // Provjeri da li je kod na serveru
     if (typeof window !== 'undefined') {
       window.location.reload();
     }
   };
 
   public render() {
-    console.log('ERROR BOUNDARY RENDER - hasError:', this.state.hasError);
-    
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;

@@ -27,7 +27,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Ako već imamo currentUser, ne trebamo provjeravati
       if (currentUser) {
         setHasCheckedAuth(true);
         setIsLoading(false);

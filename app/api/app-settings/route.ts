@@ -31,7 +31,7 @@ async function verifyAuth(req: NextRequest, requireAdmin = true) {
 
     return { user };
   } catch (error) {
-    console.error('[AUTH] Greška pri verifikaciji:', error);
+    console.error('Greška pri verifikaciji:', error);
     return { error: 'Neispravan token.', status: 401 };
   }
 }
@@ -74,16 +74,10 @@ function validateSettings(data: any) {
 // Dohvati trenutna podešavanja aplikacije
 export async function GET(req: NextRequest) {
   try {
-    console.log('[API GET /app-settings] Zahtjev za dohvatanje podešavanja');
-
-    // Autorizacija (dozvoli bilo kojem aktivnom korisniku)
     const auth = await verifyAuth(req, false);
     if ('error' in auth) {
-      console.log('[API GET /app-settings] Autorizacija neuspješna:', auth.error);
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    console.log('[API GET /app-settings] Korisnik autorizovan:', auth.user.username);
 
     let settings = await prisma.appSettings.findUnique({
       where: { id: 1 },
@@ -91,7 +85,6 @@ export async function GET(req: NextRequest) {
 
     // Ako podešavanja ne postoje, kreiraj ih sa default vrijednostima
     if (!settings) {
-      console.log('[API GET /app-settings] Kreiranje default podešavanja');
       settings = await prisma.appSettings.create({
         data: {
           id: 1,
@@ -102,13 +95,11 @@ export async function GET(req: NextRequest) {
           appIcon: null,
         } as any,
       });
-      console.log('[API GET /app-settings] Default podešavanja kreirana');
     }
 
-    console.log('[API GET /app-settings] Podešavanja uspješno dohvaćena');
     return NextResponse.json(settings);
   } catch (error) {
-    console.error('[API GET /app-settings] Greška pri dohvatanju podešavanja:', error);
+    console.error('Greška pri dohvatanju podešavanja:', error);
     return NextResponse.json({ 
       error: 'Greška pri dohvatanju podešavanja.',
       details: error instanceof Error ? error.message : 'Nepoznata greška'
@@ -119,32 +110,20 @@ export async function GET(req: NextRequest) {
 // Ažuriraj podešavanja aplikacije
 export async function POST(req: NextRequest) {
   try {
-    console.log('[API POST /app-settings] Zahtjev za ažuriranje podešavanja');
-
-    // Autorizacija (samo admin)
     const auth = await verifyAuth(req);
     if ('error' in auth) {
-      console.log('[API POST /app-settings] Autorizacija neuspješna:', auth.error);
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    console.log('[API POST /app-settings] Korisnik autorizovan:', auth.user.username);
-
-    // Parsiranje body-ja
     let body;
     try {
       body = await req.json();
     } catch (parseError) {
-      console.error('[API POST /app-settings] Nevalidan JSON body:', parseError);
       return NextResponse.json({ error: 'Nevalidan JSON body.' }, { status: 400 });
     }
 
-    console.log('[API POST /app-settings] Primljeni podaci:', body);
-
-    // Validacija podataka
     const validationErrors = validateSettings(body);
     if (validationErrors.length > 0) {
-      console.error('[API POST /app-settings] Validacijske greške:', validationErrors);
       return NextResponse.json({ 
         error: 'Nevalidni podaci.',
         details: validationErrors
@@ -155,7 +134,6 @@ export async function POST(req: NextRequest) {
 
     // Provjera obaveznih polja
     if (!exportSheetTab || !importSheetTab) {
-      console.error('[API POST /app-settings] Nedostaju obavezna polja');
       return NextResponse.json({ 
         error: 'Nedostaju obavezna polja.',
         details: ['exportSheetTab i importSheetTab su obavezni']
@@ -171,8 +149,6 @@ export async function POST(req: NextRequest) {
       appIcon: appIcon || null,
     };
 
-    console.log('[API POST /app-settings] Podaci za čuvanje:', settingsData);
-
     const updatedSettings = await prisma.appSettings.upsert({
       where: { id: 1 },
       update: settingsData as any,
@@ -186,10 +162,9 @@ export async function POST(req: NextRequest) {
       } as any,
     });
 
-    console.log('[API POST /app-settings] Podešavanja uspješno sačuvana:', updatedSettings);
     return NextResponse.json(updatedSettings);
   } catch (error) {
-    console.error('[API POST /app-settings] Greška pri čuvanju podešavanja:', error);
+    console.error('Greška pri čuvanju podešavanja:', error);
     
     // Specifične Prisma greške
     if (error instanceof Error) {
@@ -217,12 +192,5 @@ export async function POST(req: NextRequest) {
 
 // OPTIONS za CORS
 export async function OPTIONS(req: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return new NextResponse(null, { status: 200 });
 } 

@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 export default function HomePage() {
-  // TEST: Najjednostavniji mogući JSX sa 'use client'
-  return (
-    <div>
-      <h1>TEST</h1>
-      <p>Hello World</p>
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/dashboard');
+  }, [router]);
+
+  return null;
 } 

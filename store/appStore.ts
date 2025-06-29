@@ -17,15 +17,7 @@ const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
       currentUser: null,
-      setCurrentUser: (user) => {
-        set({ currentUser: user });
-        console.log('[Zustand] setCurrentUser:', user);
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            console.log('[Zustand] pilana-app-storage:', localStorage.getItem('pilana-app-storage'));
-          }, 100);
-        }
-      },
+      setCurrentUser: (user) => set({ currentUser: user }),
       activeForms: [],
       setActiveForms: (forms) => set({ activeForms: forms }),
       globalLogo: '',
@@ -48,16 +40,6 @@ const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         currentUser: state.currentUser,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          console.log('[Store] Store rehydrated, currentUser:', state.currentUser);
-          if (typeof window !== 'undefined') {
-            setTimeout(() => {
-              console.log('[Store] pilana-app-storage nakon rehidracije:', localStorage.getItem('pilana-app-storage'));
-            }, 100);
-          }
-        }
-      }
     }
   )
 );

@@ -25,13 +25,11 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
     const file = formData.get('file') as File;
     
     if (!file) {
-      console.error('[UPLOAD_IMAGE] Fajl nije poslan.');
       return NextResponse.json({ error: 'Fajl nije poslan.' }, { status: 400 });
     }
 
     // Validacija MIME tipa
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      console.error('[UPLOAD_IMAGE] Nedozvoljen tip fajla:', file.type);
       return NextResponse.json({ 
         error: `Nedozvoljen tip fajla. Dozvoljeni tipovi: ${ALLOWED_MIME_TYPES.join(', ')}` 
       }, { status: 400 });
@@ -39,7 +37,6 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
 
     // Validacija veličine fajla
     if (file.size > MAX_FILE_SIZE) {
-      console.error('[UPLOAD_IMAGE] Fajl prevelik:', file.size);
       return NextResponse.json({ 
         error: `Fajl je prevelik. Maksimalna veličina: ${MAX_FILE_SIZE / (1024 * 1024)}MB` 
       }, { status: 400 });
@@ -48,14 +45,12 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
     // Validacija imena fajla
     const fileName = file.name;
     if (!fileName || fileName.length > 255) {
-      console.error('[UPLOAD_IMAGE] Nevažeće ime fajla:', fileName);
       return NextResponse.json({ error: 'Nevažeće ime fajla.' }, { status: 400 });
     }
 
     // Provjeri da li ima ekstenziju
     const ext = fileName.split('.').pop()?.toLowerCase();
     if (!ext || !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-      console.error('[UPLOAD_IMAGE] Nedozvoljena ekstenzija:', ext);
       return NextResponse.json({ error: 'Nedozvoljena ekstenzija fajla.' }, { status: 400 });
     }
 
@@ -75,7 +70,6 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
 
     // Generiši javni URL
     const publicUrl = `/uploads/${filename}`;
-    console.log('[UPLOAD_IMAGE] Uspješno uploadovana slika:', publicUrl);
     
     return NextResponse.json({ 
       url: publicUrl,
@@ -84,7 +78,7 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
       type: file.type
     });
   } catch (error) {
-    console.error('[UPLOAD_IMAGE] Greška:', error);
+    console.error('Greška pri uploadu slike:', error);
     return NextResponse.json({ 
       error: (error as Error).message || 'Greška pri uploadu slike.' 
     }, { status: 500 });

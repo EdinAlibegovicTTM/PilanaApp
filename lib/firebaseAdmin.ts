@@ -19,14 +19,11 @@ if (!getApps().length && hasFirebaseConfig) {
       }),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
-    console.log('[Firebase] Firebase Admin inicijalizovan uspješno');
   } catch (error) {
-    console.error('[Firebase] Greška pri inicijalizaciji Firebase Admin:', error);
+    console.error('Greška pri inicijalizaciji Firebase Admin:', error);
   }
 } else if (getApps().length > 0) {
   app = getApps()[0];
-} else {
-  console.warn('[Firebase] Firebase konfiguracija nije postavljena, preskačem inicijalizaciju');
 }
 
 export const firebaseApp = app;

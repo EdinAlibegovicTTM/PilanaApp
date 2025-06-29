@@ -90,12 +90,6 @@ export async function POST(request: NextRequest) {
     // Prvi red su zaglavlja
     const headers = rows[0];
     const data = rows.slice(1);
-    
-    console.log('[AI REPORTS] Podaci pripremljeni:', {
-      headersCount: headers.length,
-      dataRowsCount: data.length,
-      headers: headers
-    });
 
     // Analiziraj prompt i generiši izvještaj
     const report = await generateAIReport(prompt, headers, data, chat);
@@ -111,79 +105,121 @@ async function generateAIReport(prompt: string, headers: string[], data: string[
   // Analiziraj prompt i odredi šta korisnik želi
   const analysis = analyzePrompt(prompt);
   
-  // Pripremi podatke za AI (ograniči na prvih 20 redova zbog dužine)
-  const previewRows = data.slice(0, 20);
-  const tablePreview = [headers, ...previewRows]
-    .map(row => row.join(' | ')).join('\n');
+  // Pripremi podatke za AI
+  const dataForAI = {
+    totalRecords: data.length,
+    columns: Object.keys(data[0] || {}),
+    sampleData: data.slice(0, 5),
+    userRequest: prompt
+  };
 
-  // Pripremi prompt za AI s chat kontekstom
-  let aiPrompt = `Ti si poslovni analitičar. Na osnovu sljedećih podataka iz tabele i korisničkog zahtjeva, generiši detaljan izvještaj, analizu i preporuke.\n\nKorisnički zahtjev: ${prompt}\n\nPodaci (prvih 20 redova):\n${tablePreview}\n\nNapiši sažetak, analizu trendova i preporuke na bosanskom jeziku.`;
+  // Pokušaj sa različitim AI modelima
+  let aiSummary = '';
+  let modelUsed = '';
 
-  // Dodaj chat kontekst ako postoji
-  let messages: any[] = [
-    { role: 'system', content: 'Ti si poslovni analitičar i ekspert za izvještaje. Odgovaraj na bosanskom jeziku.' }
-  ];
-
-  if (chat && Array.isArray(chat) && chat.length > 0) {
-    // Dodaj prethodne poruke iz chata (zadnjih 5 za kontekst)
-    const recentChat = chat.slice(-5);
-    recentChat.forEach(msg => {
-      messages.push({ role: msg.role, content: msg.content });
+  // Pokušaj GPT-4o prvo
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'Ti si AI asistent koji analizira podatke i kreira izvještaje. Odgovaraj na bosanskom jeziku.'
+          },
+          {
+            role: 'user',
+            content: `Analiziraj ove podatke i kreiraj izvještaj prema zahtjevu korisnika: ${prompt}\n\nPodaci: ${JSON.stringify(dataForAI, null, 2)}`
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      })
     });
+
+    if (response.ok) {
+      const result = await response.json();
+      aiSummary = result.choices[0].message.content;
+      modelUsed = 'gpt-4o';
+    }
+  } catch (error) {
+    // Nastavi sa drugim modelom
   }
 
-  // Dodaj trenutni prompt
-  messages.push({ role: 'user', content: aiPrompt });
-
-  let aiSummary = '';
-  let lastError = '';
-  
-  try {
-    console.log('[AI REPORTS] Pokušavam GPT-4o...');
-    // Prvo pokušaj GPT-4o
-    const aiRes = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: messages,
-      max_tokens: 600,
-      temperature: 0.7,
-    });
-    aiSummary = aiRes.choices[0]?.message?.content || '';
-    console.log('[AI REPORTS] GPT-4o uspješan, dužina odgovora:', aiSummary.length);
-  } catch (e) {
-    lastError = `GPT-4o greška: ${e instanceof Error ? e.message : 'Nepoznata greška'}`;
-    console.error('[AI REPORTS] GPT-4o greška:', e);
-    
-    // fallback na GPT-4
+  // Ako GPT-4o nije uspio, pokušaj GPT-4
+  if (!aiSummary) {
     try {
-      console.log('[AI REPORTS] Pokušavam GPT-4...');
-      const aiRes = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: messages,
-        max_tokens: 600,
-        temperature: 0.7,
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'Ti si AI asistent koji analizira podatke i kreira izvještaje. Odgovaraj na bosanskom jeziku.'
+            },
+            {
+              role: 'user',
+              content: `Analiziraj ove podatke i kreiraj izvještaj prema zahtjevu korisnika: ${prompt}\n\nPodaci: ${JSON.stringify(dataForAI, null, 2)}`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
       });
-      aiSummary = aiRes.choices[0]?.message?.content || '';
-      console.log('[AI REPORTS] GPT-4 uspješan, dužina odgovora:', aiSummary.length);
-    } catch (err) {
-      lastError += ` | GPT-4 greška: ${err instanceof Error ? err.message : 'Nepoznata greška'}`;
-      console.error('[AI REPORTS] GPT-4 greška:', err);
-      
-      // fallback na GPT-3.5 turbo
-      try {
-        console.log('[AI REPORTS] Pokušavam GPT-3.5-turbo...');
-        const aiRes = await openai.chat.completions.create({
-          model: 'gpt-3.5-turbo',
-          messages: messages,
-          max_tokens: 600,
-          temperature: 0.7,
-        });
-        aiSummary = aiRes.choices[0]?.message?.content || '';
-        console.log('[AI REPORTS] GPT-3.5-turbo uspješan, dužina odgovora:', aiSummary.length);
-      } catch (err2) {
-        lastError += ` | GPT-3.5-turbo greška: ${err2 instanceof Error ? err2.message : 'Nepoznata greška'}`;
-        console.error('[AI REPORTS] GPT-3.5-turbo greška:', err2);
-        aiSummary = `AI analiza nije dostupna. (Greška u komunikaciji sa OpenAI)\n\nDetalji greške:\n${lastError}\n\nProvjerite:\n1. Da li je OPENAI_API_KEY ispravno postavljen\n2. Da li imate kredita na OpenAI računu\n3. Da li je API ključ aktivan`;
+
+      if (response.ok) {
+        const result = await response.json();
+        aiSummary = result.choices[0].message.content;
+        modelUsed = 'gpt-4';
       }
+    } catch (error) {
+      // Nastavi sa drugim modelom
+    }
+  }
+
+  // Ako ni GPT-4 nije uspio, pokušaj GPT-3.5-turbo
+  if (!aiSummary) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'Ti si AI asistent koji analizira podatke i kreira izvještaje. Odgovaraj na bosanskom jeziku.'
+            },
+            {
+              role: 'user',
+              content: `Analiziraj ove podatke i kreiraj izvještaj prema zahtjevu korisnika: ${prompt}\n\nPodaci: ${JSON.stringify(dataForAI, null, 2)}`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        aiSummary = result.choices[0].message.content;
+        modelUsed = 'gpt-3.5-turbo';
+      }
+    } catch (error) {
+      // Ako ni ovo ne uspije, vrati grešku
     }
   }
 

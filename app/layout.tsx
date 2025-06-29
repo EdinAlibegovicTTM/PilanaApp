@@ -1,7 +1,12 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import ThemeClient from '@/components/ThemeClient';
+import Header from '@/components/Header';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { Toaster } from 'react-hot-toast';
+import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
+import AxiosInterceptor from '@/components/AxiosInterceptor';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -58,8 +63,13 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          {children}
+          <ThemeClient>
+            <AxiosInterceptor />
+            {children}
+            <Toaster position="bottom-right" />
+          </ThemeClient>
         </ErrorBoundary>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

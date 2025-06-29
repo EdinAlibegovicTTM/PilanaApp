@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Dohvati konfiguraciju forme iz baze
     const form = await prisma.form.findUnique({
       where: { id: formId }
     });
@@ -25,14 +26,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Provjeri da li su Google Sheets environment variables postavljeni
     const hasGoogleSheetsConfig = process.env.GOOGLE_SHEETS_PRIVATE_KEY && 
                                  process.env.GOOGLE_SHEETS_CLIENT_EMAIL && 
                                  process.env.GOOGLE_SHEET_ID;
 
     if (hasGoogleSheetsConfig && process.env.GOOGLE_SHEET_ID) {
       try {
+        // Parse fields iz JSON stringa
         const formFields = form.fields ? JSON.parse(form.fields) : [];
         
+        // Pripremi podatke za Google Sheets
         const formData = {
           id: formId.toString(),
           formId: formId.toString(),
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
           isActive: form.isActive
         };
 
+        // Eksportuj u Google Sheets
         const exportResult = await googleSheetsService.exportFormData(formData, formConfig);
 
         if (exportResult.success) {
@@ -78,7 +83,6 @@ export async function POST(request: NextRequest) {
             }
           });
         } else {
-          console.error('Greška pri eksportu u Google Sheets:', exportResult.message);
           return NextResponse.json({
             success: false,
             message: 'Forma poslana, ali greška pri eksportu u Google Sheets',
@@ -87,7 +91,6 @@ export async function POST(request: NextRequest) {
         }
 
       } catch (googleSheetsError) {
-        console.error('Greška pri Google Sheets integraciji:', googleSheetsError);
         return NextResponse.json({
           success: false,
           message: 'Forma poslana, ali greška pri Google Sheets integraciji',
@@ -95,6 +98,7 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
       }
     } else {
+      // Ako nema Google Sheets konfiguracije, samo vrati uspjeh
       return NextResponse.json({
         success: true,
         message: 'Forma uspješno poslana (Google Sheets nije konfigurisan)',
@@ -109,7 +113,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Submit form error:', error);
     return NextResponse.json(
       { error: 'Greška pri slanju forme' },
       { status: 500 }

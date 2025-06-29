@@ -34,7 +34,9 @@ export default function FormPage() {
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Čekamo da currentUser bude dostupan iz store-a
     if (!currentUser) {
+        // Možemo prikazati loading ili jednostavno sačekati da se pojavi
         return;
     }
     
@@ -56,6 +58,7 @@ export default function FormPage() {
           const initialData: Record<string, any> = {};
           if (fetchedForm.fields && Array.isArray(fetchedForm.fields)) {
             fetchedForm.fields.forEach((field: FormField) => {
+              // Postavi default vrijednost ako postoji, inače prazan string
               initialData[field.name] = field.options.defaultValue || '';
             });
           }
@@ -107,22 +110,17 @@ export default function FormPage() {
         setQrFieldName(name);
         setQrModalOpen(true);
       } else if (action === 'geolocation') {
-        // Provjeri da li je kod na serveru
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              const locationString = `${latitude}, ${longitude}`;
-              setFormData(prev => ({ ...prev, [name]: locationString }));
-              toast.success('Lokacija učitana.');
-            },
-            () => {
-              toast.error('Nije moguće dohvatiti lokaciju.');
-            }
-          );
-        } else {
-          toast.error('Geolokacija nije podržana u ovom browseru.');
-        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const locationString = `${latitude}, ${longitude}`;
+            setFormData(prev => ({ ...prev, [name]: locationString }));
+            toast.success('Lokacija učitana.');
+          },
+          () => {
+            toast.error('Nije moguće dohvatiti lokaciju.');
+          }
+        );
       } else if (action === 'user' && currentUser) {
         setFormData(prev => ({ ...prev, [name]: currentUser.username }));
       }
@@ -147,6 +145,7 @@ export default function FormPage() {
     setIsSubmitting(true);
 
     try {
+      // Dohvati globalna podešavanja
       const settingsResponse = await axios.get('/api/app-settings');
       const settings = settingsResponse.data;
       
@@ -156,35 +155,27 @@ export default function FormPage() {
         return;
       }
 
+      // Dohvati lokaciju za sva geolocation polja
       const updatedFormData = { ...formData };
       const geolocationFields = form.fields.filter(field => field.type === 'geolocation');
       
       if (geolocationFields.length > 0) {
-        // Provjeri da li je kod na serveru
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                timeout: 10000,
-                enableHighAccuracy: true
-              });
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 10000,
+              enableHighAccuracy: true
             });
-            
-            const { latitude, longitude } = position.coords;
-            const locationString = `${latitude}, ${longitude}`;
-            
-            geolocationFields.forEach(field => {
-              updatedFormData[field.name] = locationString;
-            });
-          } catch (locationError) {
-            console.error('Greška pri dohvatanju lokacije:', locationError);
-            toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
-            setIsSubmitting(false);
-            return;
-          }
-        } else {
-          console.warn('Geolokacija nije podržana');
-          toast.error('Geolokacija nije podržana u ovom browseru.');
+          });
+          
+          const { latitude, longitude } = position.coords;
+          const locationString = `${latitude}, ${longitude}`;
+          
+          geolocationFields.forEach(field => {
+            updatedFormData[field.name] = locationString;
+          });
+        } catch (locationError) {
+          toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
           setIsSubmitting(false);
           return;
         }
@@ -224,9 +215,7 @@ export default function FormPage() {
       
       router.push('/forms');
     } catch (error) {
-        console.error('Greška:', error);
-        const errorMessage = (error as any).response?.data?.error || 'Došlo je do greške prilikom slanja forme.';
-        toast.error(errorMessage);
+        toast.error('Došlo je do greške prilikom slanja forme.');
     } finally {
         setIsSubmitting(false);
     }

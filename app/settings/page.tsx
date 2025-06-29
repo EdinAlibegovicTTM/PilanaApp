@@ -140,7 +140,6 @@ export default function SettingsPage() {
         importSheetTab: importTab,
         logoLocations: JSON.stringify(logoLocations), // Sačuvaj kao JSON string
       };
-      console.log('Šaljem na backend:', settingsToSave);
 
       const token = localStorage.getItem('token');
       const saveRes = await fetch('/api/app-settings', {
@@ -154,7 +153,6 @@ export default function SettingsPage() {
 
       if (!saveRes.ok) throw new Error('Greška pri čuvanju podešavanja.');
       const savedData = await saveRes.json();
-      console.log('Odgovor backend-a:', savedData);
 
       const parsedLocations = savedData.logoLocations ? JSON.parse(savedData.logoLocations) : [];
       setGlobalLogo(savedData.globalLogo || '');

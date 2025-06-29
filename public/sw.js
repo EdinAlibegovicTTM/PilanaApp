@@ -10,57 +10,33 @@ const urlsToCache = [
 ];
 
 // Install event - cache osnovne resurse
-self.addEventListener('install', (event) => {
+self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
 // Fetch event - serve iz cache-a ako je dostupan
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Vrati iz cache-a ako postoji
-        if (response) {
-          return response;
-        }
-        
-        // Inače fetch iz network-a
-        return fetch(event.request).then(
-          (response) => {
-            // Provjeri da li je validan response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Kloniraj response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
-      })
+    caches.match(event.request).then(function(response) {
+      if (response) {
+        return response;
+      }
+      return fetch(event.request);
+    })
   );
 });
 
 // Activate event - cleanup starih cache-ova
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.map((cacheName) => {
+        cacheNames.map(function(cacheName) {
           if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -70,7 +46,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // Background sync za offline funkcionalnost
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', function(event) {
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }
@@ -78,7 +54,6 @@ self.addEventListener('sync', (event) => {
 
 function doBackgroundSync() {
   // Implementacija background sync-a
-  console.log('Background sync triggered');
   return Promise.resolve();
 }
 

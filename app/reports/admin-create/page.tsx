@@ -90,8 +90,6 @@ function DraggableSection({ id, x, y, size, width, onWidthChange, isSelected, on
   onSelect: () => void,
   children: React.ReactNode 
 }) {
-  console.log('DraggableSection render:', { id, x, y, isSelected });
-  
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ id });
   const defaultWidth = size === 'sm' ? 200 : size === 'md' ? 400 : 600;
   const w = width || defaultWidth;
@@ -122,15 +120,7 @@ function DraggableSection({ id, x, y, size, width, onWidthChange, isSelected, on
       {...attributes}
       onClick={(e) => {
         e.stopPropagation();
-        console.log('=== KLIK NA SEKCIJU ===');
-        console.log('Sekcija ID:', id);
-        console.log('Pozicija x:', x, 'y:', y);
-        console.log('Trenutno selektovana:', isSelected);
-        console.log('Event target:', e.target);
-        console.log('Event currentTarget:', e.currentTarget);
-        console.log('Pozivam onSelect...');
         onSelect();
-        console.log('onSelect završen');
       }}
       className={`section-hover ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
       style={{
@@ -269,11 +259,8 @@ function TablePreview({ columns, onColumnResize }: { columns: any[], onColumnRes
                 <div
                   className="absolute right-0 top-0 w-2 h-full cursor-col-resize bg-blue-400 opacity-0 hover:opacity-100 transition-opacity"
                   style={{ zIndex: 50 }}
-                  onMouseDown={e => {
+                  onMouseDown={(e) => {
                     if (onColumnResize) {
-                      console.log('=== RESIZE KOLONE ===');
-                      console.log('Kolona index:', idx);
-                      console.log('Trenutna širina:', col.width || 150);
                       e.stopPropagation();
                       setResizingCol(idx);
                       setStartX(e.clientX);
@@ -892,45 +879,36 @@ function AdminCreateReportTemplate() {
   };
 
   const handleAddSectionDnd = (type: string) => {
-    console.log('=== DODAVANJE SEKCIJE ===');
-    console.log('Tip:', type);
-    console.log('Trenutni broj sekcija:', sections.length);
-    
-    // Izračunaj poziciju za novu sekciju - jedna ispod druge
-    const newY = sections.length * 150; // 150px razmak između sekcija
-    
     const newSection = {
       id: `section_${Date.now()}`,
       type,
-      title: '',
-      dataSource: '',
-      size: 'md',
+      title: `${type} sekcija`,
       x: 20,
-      y: newY,
-      columns: type === 'table' ? [] : undefined,
-      width: 400
+      y: sections.length * 120 + 20,
+      size: 'md',
+      width: 400,
+      height: 200,
     };
-    
-    console.log('Nova sekcija:', newSection);
     setSections([...sections, newSection]);
-    setSelectedSectionId(newSection.id);
+    handleSelectSection(newSection.id);
   };
 
   function snapToGrid(x: number, y: number, grid = 20) {
-    return [Math.round(x / grid) * grid, Math.round(y / grid) * grid];
+    return { x: Math.round(x / grid) * grid, y: Math.round(y / grid) * grid };
   }
 
   const handleDragEnd = (event: any) => {
-    const { active, delta } = event;
-    setSections(sections =>
-      sections.map(section => {
+    const { active, over } = event;
+    if (active && over) {
+      const newSections = sections.map(section => {
         if (section.id === active.id) {
-          const [newX, newY] = snapToGrid((section.x || 0) + delta.x, (section.y || 0) + delta.y);
-          return { ...section, x: newX, y: newY };
+          const snapped = snapToGrid(section.x, section.y);
+          return { ...section, x: snapped.x, y: snapped.y };
         }
         return section;
-      })
-    );
+      });
+      setSections(newSections);
+    }
   };
 
   const updateSection = (updatedSection: any) => {
@@ -938,47 +916,25 @@ function AdminCreateReportTemplate() {
   };
 
   const updateColumn = (sectionId: string, colIdx: number, updates: any) => {
-    setSections(sections.map(section => {
-      if (section.id === sectionId) {
-        const newColumns = [...(section.columns || [])];
+    setSections(sections.map(s => {
+      if (s.id === sectionId && s.columns) {
+        const newColumns = [...s.columns];
         newColumns[colIdx] = { ...newColumns[colIdx], ...updates };
-        return { ...section, columns: newColumns };
+        return { ...s, columns: newColumns };
       }
-      return section;
+      return s;
     }));
   };
 
   const handleSelectSection = (id: string | null) => {
-    console.log('=== SELEKTOVANJE SEKCIJE ===');
-    console.log('Novi ID:', id);
-    console.log('Stari ID:', selectedSectionId);
-    console.log('Sve sekcije:', sections.map(s => ({ id: s.id, title: s.title })));
-    
     setSelectedSectionId(id);
-    
-    if (id) {
-      const section = sections.find(s => s.id === id);
-      console.log('Selektovana sekcija:', section);
-    } else {
-      console.log('Deselektovane sve sekcije');
-    }
   };
 
   const selectedSection = sections.find(s => s.id === selectedSectionId) || null;
-  
-  // Debug: provjeri pozicije sekcija
-  console.log('=== SEKCIJE INFO ===');
-  console.log('Ukupno sekcija:', sections.length);
-  console.log('SelectedSectionId:', selectedSectionId);
+
+  // Debug info
   sections.forEach((s, idx) => {
-    console.log(`Sekcija ${idx + 1}:`, {
-      id: s.id,
-      x: s.x,
-      y: s.y,
-      type: s.type,
-      isSelected: selectedSectionId === s.id,
-      width: s.width
-    });
+    // Debug info removed
   });
 
   return (
@@ -1148,84 +1104,15 @@ function AdminCreateReportTemplate() {
                 <DraggableSection
                   key={section.id}
                   id={section.id}
-                  x={section.x}
-                  y={section.y}
-                  size={section.size}
-                  width={section.width}
-                  onWidthChange={w => setSections(s => s.map((x, i) => i === idx ? { ...x, width: w } : x))}
+                  x={section.x || 0}
+                  y={section.y || 0}
+                  size={section.size || 'md'}
+                  width={section.width || 400}
+                  onWidthChange={(w) => updateSection({ ...section, width: w })}
                   isSelected={selectedSectionId === section.id}
-                  onSelect={() => {
-                    console.log('=== onSelect POZVAN ===');
-                    console.log('Section ID:', section.id);
-                    console.log('SelectedSectionId:', selectedSectionId);
-                    handleSelectSection(section.id);
-                  }}
+                  onSelect={() => handleSelectSection(section.id)}
                 >
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{section.title || `Sekcija ${idx + 1}`}</div>
-                        <div className="text-sm text-gray-600">
-                          Tip: {section.type} | Veličina: {section.size}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs bg-blue-200 px-2 py-1 rounded">
-                          {section.type}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSections(sections.filter((_, i) => i !== idx));
-                            if (selectedSection === section) {
-                              handleSelectSection(null);
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 text-lg"
-                          title="Izbriši sekciju"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {section.type === 'table' && (
-                      <TablePreview 
-                        columns={section.columns || []} 
-                        onColumnResize={(colIdx, newWidth) => updateColumn(section.id, colIdx, { width: newWidth })}
-                      />
-                    )}
-                    
-                    {section.type === 'chart' && (
-                      <div className="bg-white border rounded p-2">
-                        <ChartPreview
-                          type={section.chartType || 'bar'}
-                          data={[]}
-                          xField={section.xField || ''}
-                          yField={section.yField || ''}
-                          color={section.color || '#3b82f6'}
-                          compareBy={section.compareBy || ''}
-                        />
-                      </div>
-                    )}
-                    
-                    {section.type === 'field' && (
-                      <div className="bg-white border rounded p-2 text-gray-400">
-                        Polje za prikaz podataka
-                      </div>
-                    )}
-                    
-                    {section.type === 'text' && (
-                      <div className="bg-white border rounded p-2">
-                        <div 
-                          className={`text-${section.textSize || 'normal'} text-${section.textAlign || 'left'}`}
-                          dangerouslySetInnerHTML={{ 
-                            __html: section.content || 'Tekst sekcija - unesite sadržaj u settings panelu' 
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  {section.title || `${section.type} sekcija`}
                 </DraggableSection>
               ))}
               

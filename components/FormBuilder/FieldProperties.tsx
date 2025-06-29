@@ -37,6 +37,10 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
     onUpdate(updated);
   };
 
+  const handleFormulaChange = (value: string) => {
+    onUpdate({ options: { ...field.options, formula: value } });
+  };
+
   // Dropdown opcije kao tekst, svaka linija je opcija
   const dropdownOptionsText = (localField.options.dropdownOptions || []).join('\n');
 
@@ -104,7 +108,7 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
             <label className="block text-xs font-medium text-gray-700 mb-1">Formula (Excel)</label>
             <FormulaHelper
               value={localField.options.formula || ''}
-              onChange={(value) => handleOptionChange('formula', value)}
+              onChange={handleFormulaChange}
               placeholder="Unesite Excel formulu..."
               className="w-full"
               availableColumns={['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1']}
@@ -262,7 +266,6 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
                       value=""
                       onChange={(value) => {
                         // Ovdje bi se mogla dodati logika za automatsko dodavanje u JSON
-                        console.log('Nova formula:', value);
                       }}
                       placeholder="Testirajte formulu ovdje..."
                       className="w-full"

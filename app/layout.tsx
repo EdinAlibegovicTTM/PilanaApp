@@ -1,12 +1,6 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import ThemeClient from '@/components/ThemeClient';
-import Header from '@/components/Header';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { Toaster } from 'react-hot-toast';
-import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
-import AxiosInterceptor from '@/components/AxiosInterceptor';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -51,6 +45,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // TEST: Uklanjam sve komponente da vidim da li je problem u njima
   return (
     <html lang="bs">
       <head>
@@ -65,14 +60,8 @@ export default function RootLayout({
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </head>
       <body className={inter.className}>
-        <ErrorBoundary>
-          <ThemeClient>
-            <AxiosInterceptor />
-            {children}
-            <Toaster position="bottom-right" />
-          </ThemeClient>
-        </ErrorBoundary>
-        <ServiceWorkerRegistration />
+        {/* TEST: Uklanjam sve komponente, ostavljam samo children */}
+        {children}
       </body>
     </html>
   );

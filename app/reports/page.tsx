@@ -220,14 +220,7 @@ export default function ReportsPage() {
             <div className="text-center py-12">
               <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Nema izvještaja</h3>
-              <p className="text-gray-500 mb-4">Kreirajte svoj prvi izvještaj da počnete</p>
-              <button 
-                className="btn-primary" 
-                onClick={() => router.push('/reports/create')}
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Kreiraj izvještaj
-              </button>
+              <p className="text-gray-500 mb-4">Izvještaji se kreiraju u admin dijelu</p>
             </div>
           )}
         </div>

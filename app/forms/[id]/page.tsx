@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FormConfig, FormField } from '@/types';
@@ -15,12 +15,11 @@ import AuthGuard from "@/components/AuthGuard";
 import Header from "@/components/Header";
 import useStoreHydrated from '@/hooks/useStoreHydrated';
 
-export default function FormPage() {
+export default function FormPage({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<FormConfig | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const params = useParams();
   const router = useRouter();
   const { id } = params;
   const { currentUser, globalLogo, logoLocations } = useAppStore();
@@ -32,6 +31,17 @@ export default function FormPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = new BrowserMultiFormatReader();
   const formRef = useRef<HTMLDivElement>(null);
+
+  // Funkcija za dobijanje lokalnog datuma i vremena
+  const getLocalDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   useEffect(() => {
     // Čekamo da currentUser bude dostupan iz store-a
@@ -59,7 +69,14 @@ export default function FormPage() {
           if (fetchedForm.fields && Array.isArray(fetchedForm.fields)) {
             fetchedForm.fields.forEach((field: FormField) => {
               // Postavi default vrijednost ako postoji, inače prazan string
-              initialData[field.name] = field.options.defaultValue || '';
+              let defaultValue = field.options.defaultValue || '';
+              
+              // Za datetime polja, automatski postavi trenutni datum i vrijeme
+              if (field.type === 'datetime' && !defaultValue) {
+                defaultValue = getLocalDateTime();
+              }
+              
+              initialData[field.name] = defaultValue;
             });
           }
           setFormData(initialData);
@@ -75,6 +92,25 @@ export default function FormPage() {
       fetchForm();
     }
   }, [id, router, currentUser]);
+
+  // Automatsko popunjavanje datetime polja kada se forma učitava
+  useEffect(() => {
+    if (form && formData && Object.keys(formData).length > 0) {
+      const updatedFormData = { ...formData };
+      let hasChanges = false;
+
+      form.fields.forEach((field: FormField) => {
+        if (field.type === 'datetime' && (!formData[field.name] || formData[field.name] === '')) {
+          updatedFormData[field.name] = getLocalDateTime();
+          hasChanges = true;
+        }
+      });
+
+      if (hasChanges) {
+        setFormData(updatedFormData);
+      }
+    }
+  }, [form, formData]);
 
   // Novi useEffect za QR skener
   useEffect(() => {
@@ -208,7 +244,14 @@ export default function FormPage() {
       form.fields.forEach(field => {
         if (!field.options.permanent && !field.options.hidden) {
           // Vrati na default vrijednost ako postoji, inače prazan string
-          newFormData[field.name] = field.options.defaultValue || '';
+          let defaultValue = field.options.defaultValue || '';
+          
+          // Za datetime polja, automatski postavi trenutni datum i vrijeme
+          if (field.type === 'datetime' && !defaultValue) {
+            defaultValue = getLocalDateTime();
+          }
+          
+          newFormData[field.name] = defaultValue;
         }
       });
       setFormData(newFormData);

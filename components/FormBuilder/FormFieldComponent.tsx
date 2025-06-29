@@ -34,6 +34,21 @@ export default function FormFieldComponent({
     }
   }, [isInputMode, field.type, field.name, currentUser, onChange]);
 
+  // Automatsko popunjavanje datetime polja
+  useEffect(() => {
+    if (isInputMode && field.type === 'datetime' && onChange && (!value || value === '')) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      onChange({ target: { name: field.name, value: localDateTime } } as any);
+    }
+  }, [isInputMode, field.type, field.name, onChange, value]);
+
   // Sakrivanje polja ako je opcija hidden
   if (field.options.hidden) {
     return null;
@@ -166,6 +181,8 @@ export default function FormFieldComponent({
           );
         case 'date':
             return <input type="date" className="input-field" value={displayValue} readOnly />;
+        case 'datetime':
+            return <input type="datetime-local" className="input-field" value={displayValue} readOnly />;
         case 'textarea':
             return <textarea className="input-field" value={displayValue} readOnly />;
         case 'dropdown':

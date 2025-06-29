@@ -18,6 +18,7 @@ import {
   Legend,
 } from 'chart.js';
 import FormulaHelper from '@/components/FormulaHelper';
+import { useRouter } from 'next/navigation';
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, RadialLinearScale, Tooltip, Legend);
 
 const paramTypes = [
@@ -799,6 +800,7 @@ function SettingsPanel({ selectedSection, onUpdateSection, onUpdateColumn, param
 }
 
 function AdminCreateReportTemplate() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnail, setThumbnail] = useState('');
@@ -939,7 +941,12 @@ function AdminCreateReportTemplate() {
 
   return (
     <div className="w-full max-w-none mx-0 p-8">
-      <BackButton className="mb-6" />
+      <button 
+        className="btn-secondary mb-6" 
+        onClick={() => router.push('/reports')}
+      >
+        Nazad
+      </button>
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded text-blue-800">
         <h2 className="text-xl font-bold mb-2">Kreiranje novog izvještaja</h2>
         <p>Ovdje možete kreirati novi predložak izvještaja. Popunite osnovne podatke, dodajte parametre i sekcije izvještaja, te odaberite korisnike koji imaju pristup ovom izvještaju.</p>

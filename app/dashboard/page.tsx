@@ -17,6 +17,22 @@ import {
   WrenchScrewdriverIcon,
   ArrowsUpDownIcon
 } from '@heroicons/react/24/outline';
+import React from 'react';
+
+// Mapiranje ikona po ID-ju
+const iconMap = {
+  DocumentTextIcon,
+  ChartBarIcon,
+  UsersIcon,
+  Cog6ToothIcon,
+  PlusIcon,
+  EyeIcon,
+  ArrowRightIcon,
+  SparklesIcon,
+  UserGroupIcon,
+  WrenchScrewdriverIcon,
+  ArrowsUpDownIcon
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,13 +46,81 @@ export default function DashboardPage() {
   const canUsers = currentUser?.permissions?.includes('users') || isAdmin;
   const canSettings = currentUser?.permissions?.includes('settings') || isAdmin;
 
+  // Funkcija za kreiranje default kartica
+  const createDefaultCards = () => [
+    {
+      id: 'forms',
+      title: 'Forme',
+      description: 'Kreirajte i upravljajte formama za prikupljanje podataka',
+      iconName: 'DocumentTextIcon',
+      actionIconName: 'PlusIcon',
+      gradient: 'from-blue-500 to-cyan-500',
+      bgGradient: 'from-blue-50 to-cyan-50',
+      borderColor: 'border-blue-200',
+      hoverGradient: 'from-blue-100 to-cyan-100',
+      textColor: 'text-blue-900',
+      descriptionColor: 'text-blue-700',
+      route: '/forms',
+      canAccess: canForms,
+      features: ['Kreiraj forme', 'Upravljaj poljima', 'Pregledaj odgovore']
+    },
+    {
+      id: 'reports',
+      title: 'Izvještaji',
+      description: 'Pregledajte i generišite izvještaje iz prikupljenih podataka',
+      iconName: 'ChartBarIcon',
+      actionIconName: 'EyeIcon',
+      gradient: 'from-emerald-500 to-teal-500',
+      bgGradient: 'from-emerald-50 to-teal-50',
+      borderColor: 'border-emerald-200',
+      hoverGradient: 'from-emerald-100 to-teal-100',
+      textColor: 'text-emerald-900',
+      descriptionColor: 'text-emerald-700',
+      route: '/reports',
+      canAccess: canReports,
+      features: ['AI izvještaji', 'Custom izvještaji', 'Eksport podataka']
+    },
+    {
+      id: 'users',
+      title: 'Korisnici',
+      description: 'Upravljajte korisnicima i dozvolama',
+      iconName: 'UsersIcon',
+      actionIconName: 'UserGroupIcon',
+      gradient: 'from-violet-500 to-purple-500',
+      bgGradient: 'from-violet-50 to-purple-50',
+      borderColor: 'border-violet-200',
+      hoverGradient: 'from-violet-100 to-purple-100',
+      textColor: 'text-violet-900',
+      descriptionColor: 'text-violet-700',
+      route: '/users',
+      canAccess: canUsers,
+      features: ['Dodaj korisnike', 'Upravljaj dozvolama', 'Pregled aktivnosti']
+    },
+    {
+      id: 'settings',
+      title: 'Postavke',
+      description: 'Konfigurišite aplikaciju i korisničke postavke',
+      iconName: 'Cog6ToothIcon',
+      actionIconName: 'WrenchScrewdriverIcon',
+      gradient: 'from-orange-500 to-red-500',
+      bgGradient: 'from-orange-50 to-red-50',
+      borderColor: 'border-orange-200',
+      hoverGradient: 'from-orange-100 to-red-100',
+      textColor: 'text-orange-900',
+      descriptionColor: 'text-orange-700',
+      route: '/settings',
+      canAccess: canSettings,
+      features: ['Teme aplikacije', 'Logo postavke', 'Sistemske opcije']
+    }
+  ];
+
   // Učitaj poredak tabova iz localStorage
   const [dashboardCards, setDashboardCards] = useState<Array<{
     id: string;
     title: string;
     description: string;
-    icon: any;
-    actionIcon: any;
+    iconName: string;
+    actionIconName: string;
     gradient: string;
     bgGradient: string;
     borderColor: string;
@@ -47,84 +131,24 @@ export default function DashboardPage() {
     canAccess: boolean;
     features: string[];
   }>>(() => {
-    if (typeof window === 'undefined') return [];
+    if (typeof window === 'undefined') return createDefaultCards();
     
     const savedOrder = localStorage.getItem('dashboardCardOrder');
     if (savedOrder) {
       try {
-        return JSON.parse(savedOrder);
+        const parsed = JSON.parse(savedOrder);
+        // Osiguraj da sve kartice imaju potrebne polja
+        return parsed.map((card: any) => ({
+          ...card,
+          iconName: card.iconName || 'DocumentTextIcon',
+          actionIconName: card.actionIconName || 'PlusIcon',
+        }));
       } catch (e) {
         console.error('Greška pri učitavanju poretka tabova:', e);
       }
     }
     
-    // Default poredak
-    return [
-      {
-        id: 'forms',
-        title: 'Forme',
-        description: 'Kreirajte i upravljajte formama za prikupljanje podataka',
-        icon: DocumentTextIcon,
-        actionIcon: PlusIcon,
-        gradient: 'from-blue-500 to-cyan-500',
-        bgGradient: 'from-blue-50 to-cyan-50',
-        borderColor: 'border-blue-200',
-        hoverGradient: 'from-blue-100 to-cyan-100',
-        textColor: 'text-blue-900',
-        descriptionColor: 'text-blue-700',
-        route: '/forms',
-        canAccess: canForms,
-        features: ['Kreiraj forme', 'Upravljaj poljima', 'Pregledaj odgovore']
-      },
-      {
-        id: 'reports',
-        title: 'Izvještaji',
-        description: 'Pregledajte i generišite izvještaje iz prikupljenih podataka',
-        icon: ChartBarIcon,
-        actionIcon: EyeIcon,
-        gradient: 'from-emerald-500 to-teal-500',
-        bgGradient: 'from-emerald-50 to-teal-50',
-        borderColor: 'border-emerald-200',
-        hoverGradient: 'from-emerald-100 to-teal-100',
-        textColor: 'text-emerald-900',
-        descriptionColor: 'text-emerald-700',
-        route: '/reports',
-        canAccess: canReports,
-        features: ['AI izvještaji', 'Custom izvještaji', 'Eksport podataka']
-      },
-      {
-        id: 'users',
-        title: 'Korisnici',
-        description: 'Upravljajte korisnicima i dozvolama',
-        icon: UsersIcon,
-        actionIcon: UserGroupIcon,
-        gradient: 'from-violet-500 to-purple-500',
-        bgGradient: 'from-violet-50 to-purple-50',
-        borderColor: 'border-violet-200',
-        hoverGradient: 'from-violet-100 to-purple-100',
-        textColor: 'text-violet-900',
-        descriptionColor: 'text-violet-700',
-        route: '/users',
-        canAccess: canUsers,
-        features: ['Dodaj korisnike', 'Upravljaj dozvolama', 'Pregled aktivnosti']
-      },
-      {
-        id: 'settings',
-        title: 'Postavke',
-        description: 'Konfigurišite aplikaciju i korisničke postavke',
-        icon: Cog6ToothIcon,
-        actionIcon: WrenchScrewdriverIcon,
-        gradient: 'from-orange-500 to-red-500',
-        bgGradient: 'from-orange-50 to-red-50',
-        borderColor: 'border-orange-200',
-        hoverGradient: 'from-orange-100 to-red-100',
-        textColor: 'text-orange-900',
-        descriptionColor: 'text-orange-700',
-        route: '/settings',
-        canAccess: canSettings,
-        features: ['Teme aplikacije', 'Logo postavke', 'Sistemske opcije']
-      }
-    ];
+    return createDefaultCards();
   });
 
   // Sačuvaj poredak u localStorage kada se promijeni
@@ -250,10 +274,14 @@ export default function DashboardPage() {
                     {/* Header with icons */}
                     <div className="flex items-center justify-between mb-6">
                       <div className={`p-3 rounded-xl bg-gradient-to-br ${card.gradient} shadow-lg`}>
-                        <card.icon className="h-8 w-8 text-white" />
+                        {iconMap[card.iconName as keyof typeof iconMap] && 
+                          React.createElement(iconMap[card.iconName as keyof typeof iconMap], { className: "h-8 w-8 text-white" })
+                        }
                       </div>
                       <div className={`p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm group-hover:bg-white transition-colors duration-300`}>
-                        <card.actionIcon className={`h-5 w-5 ${card.descriptionColor} group-hover:scale-110 transition-transform duration-300`} />
+                        {iconMap[card.actionIconName as keyof typeof iconMap] && 
+                          React.createElement(iconMap[card.actionIconName as keyof typeof iconMap], { className: `h-5 w-5 ${card.descriptionColor} group-hover:scale-110 transition-transform duration-300` })
+                        }
                       </div>
                     </div>
                     

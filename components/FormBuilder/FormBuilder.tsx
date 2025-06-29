@@ -66,6 +66,18 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
     const y = config.fields.length > 0
       ? (config.fields[config.fields.length - 1].position?.y || 0) + (config.fields[config.fields.length - 1].position?.height || 60) + 30
       : 20;
+
+    // Funkcija za dobijanje lokalnog datuma i vremena
+    const getLocalDateTime = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     return {
       id: fieldId,
       type,
@@ -77,7 +89,8 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
         readOnly: false,
         hidden: false,
         googleSheetColumn: `A${index + 1}`,
-        defaultValue: type === 'date' ? new Date().toLocaleDateString('bs-BA') : '',
+        defaultValue: type === 'date' ? new Date().toLocaleDateString('bs-BA') : 
+                    type === 'datetime' ? getLocalDateTime() : '',
         placeholder: `Unesite ${getFieldTypeLabel(type)}`,
       },
       position: {

@@ -337,7 +337,11 @@ export default function FormPage() {
                   }}
                 />
               )}
-              <div id="form-to-print" ref={formRef} className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-md mt-10 no-print-view" style={{ position: 'relative', zIndex: 1 }}>
+              <div id="form-to-print" ref={formRef} className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-md mt-10 no-print-view" style={{ 
+                position: 'relative', 
+                zIndex: 1,
+                backgroundColor: form.backgroundColor || '#ffffff'
+              }}>
                 {/* Logo ako je omogućen */}
                 {globalLogo && logoLocations.includes('forms') && (
                   <div className="flex justify-center mb-6">

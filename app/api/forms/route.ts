@@ -24,12 +24,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, description, backgroundColor, fields, allowedUsers, image } = body;
+    const { name, description, backgroundColor, fields, allowedUsers, image, layout } = body;
+    
+    // Izvuci backgroundColor iz layout objekta ako postoji
+    const bgColor = backgroundColor || (layout?.backgroundColor) || '#ffffff';
+    
     const newForm = await prisma.form.create({
       data: {
         name,
         description,
-        backgroundColor,
+        backgroundColor: bgColor,
         fields: JSON.stringify(fields),
         allowedUsers: JSON.stringify(allowedUsers || []),
         image: image || 'uploads/default.png',
@@ -40,9 +44,15 @@ export async function POST(req: NextRequest) {
       ...newForm,
       fields: newForm.fields ? JSON.parse(newForm.fields) : [],
       allowedUsers: newForm.allowedUsers ? JSON.parse(newForm.allowedUsers) : [],
+      layout: {
+        columns: 1,
+        backgroundColor: newForm.backgroundColor || '#ffffff',
+        gridSize: 20
+      }
     };
     return NextResponse.json(parsedForm, { status: 201 });
   } catch (err: unknown) {
+    console.error('Greška pri kreiranju forme:', err);
     const errorMessage = err instanceof Error ? err.message : 'Greška na serveru.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

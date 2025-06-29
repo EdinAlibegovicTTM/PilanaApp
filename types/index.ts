@@ -83,6 +83,7 @@ export interface FormConfig {
   id: string;
   name: string;
   description?: string;
+  backgroundColor?: string;
   fields: FormField[];
   layout: {
     columns: number;

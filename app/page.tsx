@@ -10,18 +10,24 @@ export default function HomePage() {
   const { currentUser } = useAppStore();
   const isHydrated = useStoreHydrated();
 
-  console.log('isHydrated:', isHydrated, 'currentUser:', currentUser);
+  console.log('[HomePage] Render - isHydrated:', isHydrated, 'currentUser:', currentUser);
 
   useEffect(() => {
+    console.log('[HomePage] useEffect pokrenut - isHydrated:', isHydrated, 'currentUser:', currentUser);
     if (isHydrated) {
       if (currentUser) {
+        console.log('[HomePage] Preusmjeravam na dashboard');
         router.push('/dashboard');
       } else {
+        console.log('[HomePage] Preusmjeravam na login');
         router.push('/login');
       }
+    } else {
+      console.log('[HomePage] Još nije hydrated, čekam...');
     }
   }, [isHydrated, currentUser, router]);
 
+  console.log('[HomePage] Prikazujem loading spinner');
   // Prikaži loading dok se ne odluči gdje da ide
   return (
     <div className="min-h-screen flex items-center justify-center">

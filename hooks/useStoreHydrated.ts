@@ -6,6 +6,9 @@ export default function useStoreHydrated() {
 
   useEffect(() => {
     console.log('[useStoreHydrated] useEffect pokrenut');
+    console.log('[useStoreHydrated] Window definisan:', typeof window !== 'undefined');
+    console.log('[useStoreHydrated] Store hasHydrated:', useAppStore.persist.hasHydrated());
+    console.log('[useStoreHydrated] localStorage pilana-app-storage:', localStorage.getItem('pilana-app-storage'));
     
     // Provjeri da li je window definisan
     if (typeof window === 'undefined') {
@@ -26,27 +29,29 @@ export default function useStoreHydrated() {
       return;
     }
     
-    // Čekaj dok Zustand ne rehidrira store iz localStorage
-    const unsub = useAppStore.persist.onFinishHydration(() => {
-      console.log('[useStoreHydrated] Store rehidriran');
-      setHydratedTrue();
-    });
-    
-    // Fallback timeout - 2 sekunde umjesto 1
-    const timeout = setTimeout(() => {
-      console.log('[useStoreHydrated] Timeout - postavljam hydrated na true');
-      setHydratedTrue();
-    }, 2000);
-    
     // Dodatna provjera - ako localStorage postoji, možemo pretpostaviti da je hydrated
     const storage = localStorage.getItem('pilana-app-storage');
     if (storage) {
       console.log('[useStoreHydrated] localStorage postoji, postavljam hydrated');
-      clearTimeout(timeout);
       setHydratedTrue();
+      return;
     }
     
+    // Čekaj dok Zustand ne rehidrira store iz localStorage
+    console.log('[useStoreHydrated] Postavljam onFinishHydration listener');
+    const unsub = useAppStore.persist.onFinishHydration(() => {
+      console.log('[useStoreHydrated] Store rehidriran kroz onFinishHydration');
+      setHydratedTrue();
+    });
+    
+    // Fallback timeout - 3 sekunde
+    const timeout = setTimeout(() => {
+      console.log('[useStoreHydrated] Timeout - postavljam hydrated na true');
+      setHydratedTrue();
+    }, 3000);
+    
     return () => {
+      console.log('[useStoreHydrated] Cleanup - brišem timeout i listener');
       clearTimeout(timeout);
       unsub();
     };

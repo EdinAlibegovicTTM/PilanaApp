@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { firebaseStorage } from '@/lib/firebaseAdmin';
 import { withRateLimit, uploadRateLimiter } from '@/lib/rateLimit';
 import { withCors } from '@/lib/cors';
+import { v4 as uuidv4 } from 'uuid';
 
 export const runtime = 'nodejs';
 
@@ -57,26 +56,44 @@ async function uploadImageHandler(req: NextRequest): Promise<NextResponse> {
     // Kreiraj buffer iz fajla
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Kreiraj uploads direktorij
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadsDir, { recursive: true });
+    // Provjeri da li je Firebase Storage dostupan
+    if (firebaseStorage) {
+      // Koristi Firebase Storage
+      const filename = `uploads/${uuidv4()}.${ext}`;
+      const bucket = firebaseStorage.bucket();
+      const fileRef = bucket.file(filename);
+      
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: file.type,
+          metadata: {
+            originalName: fileName,
+            uploadedAt: new Date().toISOString()
+          }
+        }
+      });
 
-    // Generiši jedinstveno ime fajla
-    const filename = `${uuidv4()}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    // Snimi fajl
-    await fs.writeFile(filePath, buffer);
-
-    // Generiši javni URL
-    const publicUrl = `/uploads/${filename}`;
-    
-    return NextResponse.json({ 
-      url: publicUrl,
-      filename: filename,
-      size: file.size,
-      type: file.type
-    });
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+      
+      return NextResponse.json({ 
+        url: publicUrl,
+        filename: filename,
+        size: file.size,
+        type: file.type
+      });
+    } else {
+      // Fallback: koristi base64 encoding
+      const base64Data = buffer.toString('base64');
+      const dataUrl = `data:${file.type};base64,${base64Data}`;
+      
+      return NextResponse.json({ 
+        url: dataUrl,
+        filename: `${uuidv4()}.${ext}`,
+        size: file.size,
+        type: file.type,
+        note: 'Firebase Storage nije konfigurisan, koristi se base64 encoding'
+      });
+    }
   } catch (error) {
     console.error('Greška pri uploadu slike:', error);
     return NextResponse.json({ 

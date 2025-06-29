@@ -37,12 +37,24 @@ export default function SettingsPage() {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        
+        if (!token) {
+          toast.error('Niste prijavljeni. Molimo prijavite se ponovo.');
+          return;
+        }
+
         const res = await fetch('/api/app-settings', {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
-        if (!res.ok) throw new Error('Neuspješno učitavanje podešavanja');
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
+        }
+        
         const data = await res.json();
         
         const parsedLocations = data.logoLocations ? JSON.parse(data.logoLocations) : [];
@@ -53,7 +65,8 @@ export default function SettingsPage() {
         setLogoLocations(parsedLocations);
         setAppIconUrl((data.appIcon && data.appIcon.length > 0 ? data.appIcon : '/icons/icon-192x192.png') + '?' + Date.now());
       } catch (error) {
-        toast.error((error as Error).message);
+        console.error('Greška pri učitavanju podešavanja:', error);
+        toast.error((error as Error).message || 'Neuspješno učitavanje podešavanja');
       } finally {
         setLoading(false);
       }

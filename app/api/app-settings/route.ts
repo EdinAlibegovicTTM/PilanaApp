@@ -14,15 +14,34 @@ async function verifyAuth(req: NextRequest, requireAdmin = true) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
     
+    if (!token || token.trim() === '') {
+      return { error: 'Token je prazan.', status: 401 };
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError);
+      return { error: 'Neispravan token.', status: 401 };
+    }
+    
+    if (!decoded || !decoded.id) {
+      return { error: 'Token ne sadrži korisničke podatke.', status: 401 };
+    }
+
     // Provjeri da li korisnik postoji i da li je aktivan
     const user = await prisma.user.findUnique({
       where: { id: decoded.id }
     });
 
-    if (!user || !user.isActive) {
-      return { error: 'Korisnik nije pronađen ili je deaktiviran.', status: 401 };
+    if (!user) {
+      return { error: 'Korisnik nije pronađen.', status: 401 };
+    }
+
+    if (!user.isActive) {
+      return { error: 'Korisnik je deaktiviran.', status: 401 };
     }
 
     if (requireAdmin && user.role !== 'admin') {
@@ -32,7 +51,7 @@ async function verifyAuth(req: NextRequest, requireAdmin = true) {
     return { user };
   } catch (error) {
     console.error('Greška pri verifikaciji:', error);
-    return { error: 'Neispravan token.', status: 401 };
+    return { error: 'Greška pri verifikaciji tokena.', status: 401 };
   }
 }
 
@@ -76,6 +95,7 @@ export async function GET(req: NextRequest) {
   try {
     const auth = await verifyAuth(req, false);
     if ('error' in auth) {
+      console.error('Auth error:', auth.error);
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
@@ -85,16 +105,24 @@ export async function GET(req: NextRequest) {
 
     // Ako podešavanja ne postoje, kreiraj ih sa default vrijednostima
     if (!settings) {
-      settings = await prisma.appSettings.create({
-        data: {
-          id: 1,
-          globalLogo: null,
-          exportSheetTab: 'Export',
-          importSheetTab: 'Import',
-          logoLocations: '[]',
-          appIcon: null,
-        } as any,
-      });
+      try {
+        settings = await prisma.appSettings.create({
+          data: {
+            id: 1,
+            globalLogo: null,
+            exportSheetTab: 'Export',
+            importSheetTab: 'Import',
+            logoLocations: '[]',
+            appIcon: null,
+          } as any,
+        });
+      } catch (createError) {
+        console.error('Greška pri kreiranju default podešavanja:', createError);
+        return NextResponse.json({ 
+          error: 'Greška pri kreiranju podešavanja.',
+          details: createError instanceof Error ? createError.message : 'Nepoznata greška'
+        }, { status: 500 });
+      }
     }
 
     return NextResponse.json(settings);

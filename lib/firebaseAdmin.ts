@@ -19,11 +19,15 @@ if (!getApps().length && hasFirebaseConfig) {
       }),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
+    console.log('Firebase Admin uspješno inicijalizovan');
   } catch (error) {
     console.error('Greška pri inicijalizaciji Firebase Admin:', error);
   }
 } else if (getApps().length > 0) {
   app = getApps()[0];
+  console.log('Firebase Admin već inicijalizovan');
+} else {
+  console.warn('Firebase Admin nije konfigurisan. Provjerite environment varijable: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_STORAGE_BUCKET');
 }
 
 export const firebaseApp = app;

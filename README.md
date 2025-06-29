@@ -41,6 +41,23 @@ Aplikacija za upravljanje formama i izvještajima sa AI podrškom.
 - Performanse optimizacije
 - Sigurnosni headeri
 
+### Firebase Storage (opciono)
+Za upload slika i ikonica, možete koristiti Firebase Storage:
+
+1. Kreiraj Firebase projekt na [Firebase Console](https://console.firebase.google.com/)
+2. Omogući Storage u Firebase projektu
+3. Kreiraj Service Account i preuzmi JSON fajl
+4. Postavi environment varijable:
+
+```env
+FIREBASE_PROJECT_ID="your-project-id"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL="your-service-account@project.iam.gserviceaccount.com"
+FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
+```
+
+**Napomena**: Ako Firebase nije konfigurisan, aplikacija će koristiti base64 encoding kao fallback za upload slika.
+
 ## 🛠️ Instalacija
 
 ### Preduvjeti
@@ -73,6 +90,12 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL="your-service-account@email.com"
 GOOGLE_PRIVATE_KEY="your-private-key"
 OPENAI_API_KEY="your-openai-api-key"
 JWT_SECRET="your-jwt-secret"
+
+# Firebase Storage (opciono)
+FIREBASE_PROJECT_ID="your-project-id"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL="your-service-account@project.iam.gserviceaccount.com"
+FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
 ```
 
 4. **Pokreni bazu podataka**

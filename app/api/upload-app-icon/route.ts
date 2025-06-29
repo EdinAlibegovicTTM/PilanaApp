@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { firebaseStorage } from '@/lib/firebaseAdmin';
+import { v4 as uuidv4 } from 'uuid';
 
-export const runtime = 'nodejs'; // Za podršku file systema na Vercel-u
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,37 +25,46 @@ export async function POST(req: NextRequest) {
     // Kreiraj buffer iz fajla
     const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Kreiraj icons direktorij
-    const iconsDir = path.join(process.cwd(), 'public', 'icons');
-    await fs.mkdir(iconsDir, { recursive: true });
+    let publicUrl: string;
 
-    // Snimi glavnu ikonicu (192x192)
-    const iconPath = path.join(iconsDir, 'icon-192x192.png');
-    await fs.writeFile(iconPath, buffer);
+    // Provjeri da li je Firebase Storage dostupan
+    if (firebaseStorage) {
+      // Koristi Firebase Storage
+      const filename = `icons/app-icon-${uuidv4()}.png`;
+      const bucket = firebaseStorage.bucket();
+      const fileRef = bucket.file(filename);
+      
+      await fileRef.save(buffer, {
+        metadata: {
+          contentType: file.type,
+          metadata: {
+            originalName: file.name,
+            uploadedAt: new Date().toISOString(),
+            type: 'app-icon'
+          }
+        }
+      });
 
-    // Snimi favicon (32x32)
-    const faviconPath = path.join(iconsDir, 'favicon.ico');
-    await fs.writeFile(faviconPath, buffer);
-
-    // Snimi apple touch icon (180x180)
-    const appleIconPath = path.join(iconsDir, 'apple-touch-icon.png');
-    await fs.writeFile(appleIconPath, buffer);
-
-    // Snimi manifest icon (512x512)
-    const manifestIconPath = path.join(iconsDir, 'icon-512x512.png');
-    await fs.writeFile(manifestIconPath, buffer);
+      publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    } else {
+      // Fallback: koristi base64 encoding
+      const base64Data = buffer.toString('base64');
+      publicUrl = `data:${file.type};base64,${base64Data}`;
+    }
 
     // Ažuriraj app-settings sa novom ikonicom
     try {
       const { PrismaClient } = await import('@prisma/client');
       const prisma = new PrismaClient();
       
-      // Samo provjeri da li postoji app-settings, ne ažuriraj appIcon
       await prisma.appSettings.upsert({
         where: { id: 1 },
-        update: {},
+        update: {
+          appIcon: publicUrl
+        },
         create: { 
-          id: 1
+          id: 1,
+          appIcon: publicUrl
         }
       });
       
@@ -66,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      url: '/icons/icon-192x192.png',
+      url: publicUrl,
       message: 'Ikonica uspješno postavljena!'
     });
     

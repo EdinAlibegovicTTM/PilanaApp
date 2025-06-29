@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useAppStore from '@/store/appStore';
 import { ReportConfig } from '@/types';
-import { ChartBarIcon, DocumentTextIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, DocumentTextIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon, UserGroupIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
@@ -82,82 +82,155 @@ export default function ReportsPage() {
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold">Izvještaji</h2>
           </div>
-          <div className="flex gap-2">
-            <button 
-              className="btn-secondary" 
-              onClick={() => router.push('/reports/ai-create')}
-            >
-              <ChartBarIcon className="h-5 w-5 mr-2" />
-              AI Izvještaj
-            </button>
-            <button 
-              className="btn-primary" 
-              onClick={() => router.push('/reports/create')}
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Novi izvještaj
-            </button>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reports.map(report => (
-            <div key={report.id} className="card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <DocumentTextIcon className="h-8 w-8 text-blue-600" />
-                  <h3 className="font-bold text-lg">{report.name}</h3>
-                </div>
+        {/* Thumbnail sekcije */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Admin izvještaji thumbnail */}
+          <div className="card p-6 border-2 border-blue-200 hover:border-blue-300 transition-colors">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <UserGroupIcon className="h-8 w-8 text-blue-600" />
               </div>
-              
-              <p className="text-gray-600 mb-4">{report.description}</p>
-              
-              <div className="text-sm text-gray-500 mb-4">
-                <div>Google Sheet: {report.dataSource.googleSheetName}</div>
-                <div>Polja: {report.displayFields.length}</div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2">
-                <button 
-                  onClick={() => router.push(`/reports/builder?report=${report.id}`)} 
-                  className="btn-icon" 
-                  title="Pogledaj izvještaj"
-                >
-                  <EyeIcon className="h-5 w-5" />
-                </button>
-                <button 
-                  onClick={() => router.push(`/reports/create?edit=${report.id}`)} 
-                  className="btn-icon" 
-                  title="Uredi"
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button 
-                  onClick={() => handleDelete(report.id)} 
-                  className="btn-icon text-red-500" 
-                  title="Obriši"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Admin Izvještaji</h3>
+                <p className="text-gray-600">Izvještaji koje kreira admin za korisnike</p>
               </div>
             </div>
-          ))}
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-3">
+                Kreirajte i upravljajte izvještajima koje mogu vidjeti odobreni korisnici.
+              </p>
+              <div className="text-sm text-gray-600">
+                <div>• Kreirajte custom izvještaje</div>
+                <div>• Upravljajte pristupom korisnika</div>
+                <div>• Eksportujte podatke</div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                className="btn-primary flex-1" 
+                onClick={() => router.push('/reports/create')}
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Kreiraj izvještaj
+              </button>
+              <button 
+                className="btn-secondary" 
+                onClick={() => router.push('/reports/admin-create')}
+              >
+                <EyeIcon className="h-5 w-5" />
+                Pregledaj
+              </button>
+            </div>
+          </div>
+
+          {/* AI izvještaji thumbnail */}
+          <div className="card p-6 border-2 border-purple-200 hover:border-purple-300 transition-colors">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <SparklesIcon className="h-8 w-8 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">AI Izvještaji</h3>
+                <p className="text-gray-600">Inteligentni izvještaji sa AI analizom</p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-3">
+                Generišite inteligentne izvještaje pomoću AI tehnologije.
+              </p>
+              <div className="text-sm text-gray-600">
+                <div>• Automatska analiza podataka</div>
+                <div>• AI generisani insights</div>
+                <div>• Pametne preporuke</div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                className="btn-primary flex-1 bg-purple-600 hover:bg-purple-700" 
+                onClick={() => router.push('/reports/ai-create')}
+              >
+                <SparklesIcon className="h-5 w-5 mr-2" />
+                AI Izvještaj
+              </button>
+              <button 
+                className="btn-secondary" 
+                onClick={() => router.push('/reports/ai-create')}
+              >
+                <EyeIcon className="h-5 w-5" />
+                Pregledaj
+              </button>
+            </div>
+          </div>
         </div>
 
-        {reports.length === 0 && (
-          <div className="text-center py-12">
-            <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nema izvještaja</h3>
-            <p className="text-gray-500 mb-4">Kreirajte svoj prvi izvještaj da počnete</p>
-            <button 
-              className="btn-primary" 
-              onClick={() => router.push('/reports/create')}
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Kreiraj izvještaj
-            </button>
+        {/* Lista postojećih izvještaja */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4">Postojeći izvještaji</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reports.map(report => (
+              <div key={report.id} className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <DocumentTextIcon className="h-8 w-8 text-blue-600" />
+                    <h3 className="font-bold text-lg">{report.name}</h3>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 mb-4">{report.description}</p>
+                
+                <div className="text-sm text-gray-500 mb-4">
+                  <div>Google Sheet: {report.dataSource.googleSheetName}</div>
+                  <div>Polja: {report.displayFields.length}</div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2">
+                  <button 
+                    onClick={() => router.push(`/reports/builder?report=${report.id}`)} 
+                    className="btn-icon" 
+                    title="Pogledaj izvještaj"
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={() => router.push(`/reports/create?edit=${report.id}`)} 
+                    className="btn-icon" 
+                    title="Uredi"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(report.id)} 
+                    className="btn-icon text-red-500" 
+                    title="Obriši"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+
+          {reports.length === 0 && (
+            <div className="text-center py-12">
+              <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nema izvještaja</h3>
+              <p className="text-gray-500 mb-4">Kreirajte svoj prvi izvještaj da počnete</p>
+              <button 
+                className="btn-primary" 
+                onClick={() => router.push('/reports/create')}
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Kreiraj izvještaj
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

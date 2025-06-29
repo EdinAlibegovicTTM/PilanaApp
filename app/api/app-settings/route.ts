@@ -75,6 +75,10 @@ function validateSettings(data: any) {
     errors.push('appIcon mora biti string');
   }
 
+  if (data.theme && typeof data.theme !== 'string') {
+    errors.push('theme mora biti string');
+  }
+
   if (data.logoLocations) {
     try {
       if (typeof data.logoLocations === 'string') {
@@ -114,6 +118,7 @@ export async function GET(req: NextRequest) {
             importSheetTab: 'Import',
             logoLocations: '[]',
             appIcon: null,
+            theme: 'whatsapp-light',
           } as any,
         });
       } catch (createError) {
@@ -158,7 +163,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { globalLogo, exportSheetTab, importSheetTab, logoLocations, appIcon } = body;
+    const { globalLogo, exportSheetTab, importSheetTab, logoLocations, appIcon, theme } = body;
 
     // Provjera obaveznih polja
     if (!exportSheetTab || !importSheetTab) {
@@ -175,6 +180,7 @@ export async function POST(req: NextRequest) {
       importSheetTab: importSheetTab.trim(),
       logoLocations: typeof logoLocations === 'string' ? logoLocations : JSON.stringify(logoLocations || []),
       appIcon: appIcon || null,
+      theme: theme || 'whatsapp-light',
     };
 
     const updatedSettings = await prisma.appSettings.upsert({
@@ -187,6 +193,7 @@ export async function POST(req: NextRequest) {
         importSheetTab: settingsData.importSheetTab,
         logoLocations: settingsData.logoLocations,
         appIcon: settingsData.appIcon,
+        theme: settingsData.theme,
       } as any,
     });
 

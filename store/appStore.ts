@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, FormConfig } from '@/types';
 
+type ThemeName = 'facebook-light' | 'facebook-dark' | 'whatsapp-dark' | 'whatsapp-light' | 'slack' | 'discord';
+
 interface AppStore {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
@@ -11,6 +13,8 @@ interface AppStore {
   setGlobalLogo: (logo: string) => void;
   logoLocations: string[];
   setLogoLocations: (locations: string[]) => void;
+  theme: ThemeName;
+  setTheme: (theme: ThemeName) => void;
 }
 
 const useAppStore = create<AppStore>()(
@@ -24,6 +28,8 @@ const useAppStore = create<AppStore>()(
       setGlobalLogo: (logo) => set({ globalLogo: logo }),
       logoLocations: [],
       setLogoLocations: (locations) => set({ logoLocations: locations }),
+      theme: 'whatsapp-light',
+      setTheme: (theme) => set({ theme }),
     }),
     {
       name: 'pilana-app-storage',
@@ -39,6 +45,7 @@ const useAppStore = create<AppStore>()(
       }),
       partialize: (state) => ({
         currentUser: state.currentUser,
+        theme: state.theme,
       }),
     }
   )

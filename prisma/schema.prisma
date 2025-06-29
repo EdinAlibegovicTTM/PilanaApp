@@ -39,6 +39,7 @@ model AppSettings {
   importSheetTab String?
   logoLocations  String?
   appIcon        String?
+  theme          String? @default("whatsapp-light")
 }
 
 model ReportTemplate {

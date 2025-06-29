@@ -22,6 +22,8 @@ export default function SettingsPage() {
     setLogoLocations,
     globalLogo,
     logoLocations,
+    theme,
+    setTheme,
   } = useAppStore();
 
   const [exportTab, setLocalExportTab] = useState('');
@@ -64,6 +66,11 @@ export default function SettingsPage() {
         setGlobalLogo(data.globalLogo || '');
         setLogoLocations(parsedLocations);
         setAppIconUrl((data.appIcon && data.appIcon.length > 0 ? data.appIcon : '/icons/icon-192x192.png') + '?' + Date.now());
+        
+        // Postavi temu iz baze podataka
+        if (data.theme) {
+          setTheme(data.theme);
+        }
       } catch (error) {
         console.error('Greška pri učitavanju podešavanja:', error);
         toast.error((error as Error).message || 'Neuspješno učitavanje podešavanja');
@@ -73,6 +80,35 @@ export default function SettingsPage() {
     };
     fetchSettings();
   }, [setGlobalLogo, setLogoLocations]);
+
+  // Automatsko čuvanje teme kada se promijeni
+  useEffect(() => {
+    const saveTheme = async () => {
+      if (!theme) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        await fetch('/api/app-settings', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ 
+            exportSheetTab: exportTab || 'Export',
+            importSheetTab: importTab || 'Import',
+            theme: theme 
+          }),
+        });
+      } catch (error) {
+        console.error('Greška pri čuvanju teme:', error);
+      }
+    };
+
+    saveTheme();
+  }, [theme, exportTab, importTab]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -152,6 +188,7 @@ export default function SettingsPage() {
         exportSheetTab: exportTab,
         importSheetTab: importTab,
         logoLocations: JSON.stringify(logoLocations), // Sačuvaj kao JSON string
+        theme: theme, // Dodaj temu
       };
 
       const token = localStorage.getItem('token');
@@ -190,13 +227,13 @@ export default function SettingsPage() {
         <label className="block mb-1 font-medium">Tema aplikacije</label>
         <div className="flex flex-col gap-2">
           {themeOptions.map(opt => (
-            <label key={opt.value} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${globalLogo === opt.value ? 'ring-2 ring-primary' : ''}`}>
+            <label key={opt.value} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${theme === opt.value ? 'ring-2 ring-primary' : ''}`}>
               <input
                 type="radio"
                 name="theme"
                 value={opt.value}
-                checked={globalLogo === opt.value}
-                onChange={() => setGlobalLogo(opt.value)}
+                checked={theme === opt.value}
+                onChange={() => setTheme(opt.value)}
               />
               <span className="text-xl">{opt.preview}</span>
               <span>{opt.label}</span>

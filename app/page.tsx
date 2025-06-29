@@ -1,5 +1,7 @@
+'use client';
+
 export default function HomePage() {
-  // TEST: Najjednostavniji mogući JSX
+  // TEST: Najjednostavniji mogući JSX sa 'use client'
   return (
     <div>
       <h1>TEST</h1>

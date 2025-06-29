@@ -110,17 +110,22 @@ export default function FormPage() {
         setQrFieldName(name);
         setQrModalOpen(true);
       } else if (action === 'geolocation') {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            const locationString = `${latitude}, ${longitude}`;
-            setFormData(prev => ({ ...prev, [name]: locationString }));
-            toast.success('Lokacija učitana.');
-          },
-          () => {
-            toast.error('Nije moguće dohvatiti lokaciju.');
-          }
-        );
+        // Provjeri da li je kod na serveru
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              const locationString = `${latitude}, ${longitude}`;
+              setFormData(prev => ({ ...prev, [name]: locationString }));
+              toast.success('Lokacija učitana.');
+            },
+            () => {
+              toast.error('Nije moguće dohvatiti lokaciju.');
+            }
+          );
+        } else {
+          toast.error('Geolokacija nije podržana u ovom browseru.');
+        }
       } else if (action === 'user' && currentUser) {
         setFormData(prev => ({ ...prev, [name]: currentUser.username }));
       }
@@ -165,25 +170,33 @@ export default function FormPage() {
       const geolocationFields = form.fields.filter(field => field.type === 'geolocation');
       
       if (geolocationFields.length > 0) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 10000,
-              enableHighAccuracy: true
+        // Provjeri da li je kod na serveru
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 10000,
+                enableHighAccuracy: true
+              });
             });
-          });
-          
-          const { latitude, longitude } = position.coords;
-          const locationString = `${latitude}, ${longitude}`;
-          
-          geolocationFields.forEach(field => {
-            updatedFormData[field.name] = locationString;
-          });
-          
-          console.log('[FormPage] handleSubmit - lokacija dohvaćena:', locationString);
-        } catch (locationError) {
-          console.error('[FormPage] handleSubmit - greška pri dohvatanju lokacije:', locationError);
-          toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
+            
+            const { latitude, longitude } = position.coords;
+            const locationString = `${latitude}, ${longitude}`;
+            
+            geolocationFields.forEach(field => {
+              updatedFormData[field.name] = locationString;
+            });
+            
+            console.log('[FormPage] handleSubmit - lokacija dohvaćena:', locationString);
+          } catch (locationError) {
+            console.error('[FormPage] handleSubmit - greška pri dohvatanju lokacije:', locationError);
+            toast.error('Nije moguće dohvatiti lokaciju. Molimo omogućite pristup lokaciji.');
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          console.warn('[FormPage] handleSubmit - geolokacija nije podržana');
+          toast.error('Geolokacija nije podržana u ovom browseru.');
           setIsSubmitting(false);
           return;
         }

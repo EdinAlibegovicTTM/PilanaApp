@@ -1,11 +1,9 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
-
-// TEST: Dodajem console.log da vidim da li se layout izvršava
-console.log('LAYOUT LOADED - TEST');
 
 export const metadata: Metadata = {
   title: 'Pilana App',
@@ -45,7 +43,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // TEST: Uklanjam sve komponente da vidim da li je problem u njima
   return (
     <html lang="bs">
       <head>
@@ -60,8 +57,9 @@ export default function RootLayout({
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </head>
       <body className={inter.className}>
-        {/* TEST: Uklanjam sve komponente, ostavljam samo children */}
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

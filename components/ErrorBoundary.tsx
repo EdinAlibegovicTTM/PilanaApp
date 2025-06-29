@@ -31,6 +31,13 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary uhvatio grešku:', error, errorInfo);
   }
 
+  private handleReload = () => {
+    // Provjeri da li je kod na serveru
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+
   public render() {
     console.log('ERROR BOUNDARY RENDER - hasError:', this.state.hasError);
     
@@ -54,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
               <div className="mt-4">
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={this.handleReload}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Osvježi stranicu

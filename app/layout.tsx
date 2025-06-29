@@ -10,6 +10,9 @@ import AxiosInterceptor from '@/components/AxiosInterceptor';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// TEST: Dodajem console.log da vidim da li se layout izvršava
+console.log('LAYOUT LOADED - TEST');
+
 export const metadata: Metadata = {
   title: 'Pilana App',
   description: 'Aplikacija za upravljanje formama i izvještajima',

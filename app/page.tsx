@@ -20,10 +20,15 @@ export default function HomePage() {
     }
   }, [isHydrated, currentUser, router]);
 
-  // Prikaži loading dok se ne odluči gdje da ide
+  // TEST: Dodajem statički tekst da vidim da li se išta renderuje
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-red-600 mb-4">TEST - APLIKACIJA RADI!</h1>
+        <p className="text-lg text-gray-600 mb-4">Ako vidiš ovo, React se renderuje.</p>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-sm text-gray-500">isHydrated: {String(isHydrated)} | currentUser: {currentUser ? 'Postoji' : 'Nema'}</p>
+      </div>
     </div>
   );
 } 

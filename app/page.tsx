@@ -28,10 +28,13 @@ export default function HomePage() {
   }, [isHydrated, currentUser, router]);
 
   console.log('[HomePage] Prikazujem loading spinner');
-  // Prikaži loading dok se ne odluči gdje da ide
+  // TEST: Hardcoded HTML
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+    <div>
+      <h1 style={{color: 'red', fontSize: 32}}>TEST: OVO JE HOME PAGE</h1>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
     </div>
   );
 } 

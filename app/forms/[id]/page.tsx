@@ -31,6 +31,7 @@ export default function FormPage({ params }: { params: { id: string } }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = new BrowserMultiFormatReader();
   const formRef = useRef<HTMLDivElement>(null);
+  const [isQrScanned, setIsQrScanned] = useState(false);
 
   // Funkcija za dobijanje lokalnog datuma i vremena
   const getLocalDateTime = () => {
@@ -114,27 +115,31 @@ export default function FormPage({ params }: { params: { id: string } }) {
 
   // Novi useEffect za QR skener
   useEffect(() => {
+    if (isQrModalOpen) setIsQrScanned(false); // Resetuj flag svaki put kad se modal otvori
     if (isQrModalOpen && videoRef.current) {
       codeReader.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
-        if (result && qrFieldName) {
+        if (!isQrScanned && result && qrFieldName) {
+          setIsQrScanned(true);
           setFormData(prev => ({ ...prev, [qrFieldName]: result.getText() }));
           toast.success(`Skeniran kod: ${result.getText()}`);
           setQrModalOpen(false);
           setQrFieldName(null);
         }
         if (err && !(err instanceof NotFoundException)) {
-          console.error(err);
-          toast.error('Greška pri skeniranju.');
-          setQrModalOpen(false);
-          setQrFieldName(null);
+          if (!isQrScanned) {
+            setIsQrScanned(true);
+            console.error(err);
+            toast.error('Greška pri skeniranju.');
+            setQrModalOpen(false);
+            setQrFieldName(null);
+          }
         }
       });
     }
-    
     return () => {
       codeReader.reset();
     };
-  }, [isQrModalOpen, qrFieldName, codeReader]);
+  }, [isQrModalOpen, qrFieldName, codeReader, isQrScanned]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

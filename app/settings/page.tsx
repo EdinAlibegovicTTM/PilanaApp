@@ -4,6 +4,7 @@ import useAppStore from '@/store/appStore';
 import { useState, useEffect } from 'react';
 import BackButton from '@/components/BackButton';
 import toast from 'react-hot-toast';
+import Header from '@/components/Header';
 
 type ThemeName = 'facebook-light' | 'facebook-dark' | 'whatsapp-dark' | 'whatsapp-light' | 'slack' | 'discord';
 
@@ -220,98 +221,101 @@ export default function SettingsPage() {
   if (loading) return <div className="p-8 text-center">Učitavanje...</div>;
 
   return (
-    <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded shadow">
-      <BackButton className="mb-6" />
-      <h2 className="text-lg font-bold mb-4">Podešavanja aplikacije</h2>
-      <div className="mb-6">
-        <label className="block mb-1 font-medium">Tema aplikacije</label>
-        <div className="flex flex-col gap-2">
-          {themeOptions.map(opt => (
-            <label key={opt.value} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${theme === opt.value ? 'ring-2 ring-primary' : ''}`}>
-              <input
-                type="radio"
-                name="theme"
-                value={opt.value}
-                checked={theme === opt.value}
-                onChange={() => setTheme(opt.value)}
-              />
-              <span className="text-xl">{opt.preview}</span>
-              <span>{opt.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <form onSubmit={handleSave} className="mt-8">
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Logo firme</label>
-          <input type="file" accept="image/*" onChange={handleLogoChange} />
-          {logoPreview && <img src={logoPreview} alt="Logo preview" className="mt-2 max-h-32" />}
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Gdje prikazati logo?</label>
-          <div className="flex flex-col gap-2">
-            <label>
-              <input
-                type="checkbox"
-                checked={logoLocations.includes('dashboard')}
-                onChange={e => {
-                  if (e.target.checked) {
-                    setLogoLocations([...logoLocations, 'dashboard']);
-                  } else {
-                    setLogoLocations(logoLocations.filter(loc => loc !== 'dashboard'));
-                  }
-                }}
-              /> Dashboard
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={logoLocations.includes('forms')}
-                onChange={e => {
-                  if (e.target.checked) {
-                    setLogoLocations([...logoLocations, 'forms']);
-                  } else {
-                    setLogoLocations(logoLocations.filter(loc => loc !== 'forms'));
-                  }
-                }}
-              /> Sve forme
-            </label>
-          </div>
-        </div>
-        <div className="mb-4">
-          <label className="block font-medium mb-1">Ikonica aplikacije (za prečac na ekranu)</label>
-          <input type="file" accept="image/*" onChange={handleAppIconUpload} />
-          <div className="mt-2">
-            <img src={appIconUrl} alt="App Icon Preview" className="w-16 h-16 rounded border" />
-            <div className="text-xs text-gray-500 mt-1">
-              Preporučeno: PNG 192x192px ili veće. Podržani formati: PNG, JPG, GIF
-            </div>
-            <div className="text-xs text-blue-600 mt-1">
-              Ikonica će se automatski koristiti za favicon, PWA i Apple touch icon.
-            </div>
-          </div>
-        </div>
-        
-        <h2 className="text-lg font-bold mb-4 mt-8">Google Sheets podešavanja</h2>
-        <div className="mb-4">
-          <label className="block mb-1">Tab za export</label>
-          <input
-            className="input-field"
-            value={exportTab}
-            onChange={e => setLocalExportTab(e.target.value)}
-          />
-        </div>
+    <>
+      <Header />
+      <div className="max-w-lg mx-auto mt-10 p-6 bg-white rounded shadow">
+        <BackButton className="mb-6" />
+        <h2 className="text-lg font-bold mb-4">Podešavanja aplikacije</h2>
         <div className="mb-6">
-          <label className="block mb-1">Tab za import</label>
-          <input
-            className="input-field"
-            value={importTab}
-            onChange={e => setLocalImportTab(e.target.value)}
-          />
+          <label className="block mb-1 font-medium">Tema aplikacije</label>
+          <div className="flex flex-col gap-2">
+            {themeOptions.map(opt => (
+              <label key={opt.value} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${theme === opt.value ? 'ring-2 ring-primary' : ''}`}>
+                <input
+                  type="radio"
+                  name="theme"
+                  value={opt.value}
+                  checked={theme === opt.value}
+                  onChange={() => setTheme(opt.value)}
+                />
+                <span className="text-xl">{opt.preview}</span>
+                <span>{opt.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
+        <form onSubmit={handleSave} className="mt-8">
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Logo firme</label>
+            <input type="file" accept="image/*" onChange={handleLogoChange} />
+            {logoPreview && <img src={logoPreview} alt="Logo preview" className="mt-2 max-h-32" />}
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Gdje prikazati logo?</label>
+            <div className="flex flex-col gap-2">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={logoLocations.includes('dashboard')}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLogoLocations([...logoLocations, 'dashboard']);
+                    } else {
+                      setLogoLocations(logoLocations.filter(loc => loc !== 'dashboard'));
+                    }
+                  }}
+                /> Dashboard
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={logoLocations.includes('forms')}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLogoLocations([...logoLocations, 'forms']);
+                    } else {
+                      setLogoLocations(logoLocations.filter(loc => loc !== 'forms'));
+                    }
+                  }}
+                /> Sve forme
+              </label>
+            </div>
+          </div>
+          <div className="mb-4">
+            <label className="block font-medium mb-1">Ikonica aplikacije (za prečac na ekranu)</label>
+            <input type="file" accept="image/*" onChange={handleAppIconUpload} />
+            <div className="mt-2">
+              <img src={appIconUrl} alt="App Icon Preview" className="w-16 h-16 rounded border" />
+              <div className="text-xs text-gray-500 mt-1">
+                Preporučeno: PNG 192x192px ili veće. Podržani formati: PNG, JPG, GIF
+              </div>
+              <div className="text-xs text-blue-600 mt-1">
+                Ikonica će se automatski koristiti za favicon, PWA i Apple touch icon.
+              </div>
+            </div>
+          </div>
+          
+          <h2 className="text-lg font-bold mb-4 mt-8">Google Sheets podešavanja</h2>
+          <div className="mb-4">
+            <label className="block mb-1">Tab za export</label>
+            <input
+              className="input-field"
+              value={exportTab}
+              onChange={e => setLocalExportTab(e.target.value)}
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block mb-1">Tab za import</label>
+            <input
+              className="input-field"
+              value={importTab}
+              onChange={e => setLocalImportTab(e.target.value)}
+            />
+          </div>
 
-        <button type="submit" className="btn-primary w-full">Sačuvaj podešavanja</button>
-      </form>
-    </div>
+          <button type="submit" className="btn-primary w-full">Sačuvaj podešavanja</button>
+        </form>
+      </div>
+    </>
   );
 } 

@@ -19,6 +19,7 @@ import {
 } from 'chart.js';
 import FormulaHelper from '@/components/FormulaHelper';
 import { useRouter } from 'next/navigation';
+import Header from '@/components/Header';
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, RadialLinearScale, Tooltip, Legend);
 
 const paramTypes = [
@@ -941,6 +942,7 @@ function AdminCreateReportTemplate() {
 
   return (
     <div className="w-full max-w-none mx-0 p-8">
+      <Header />
       <button 
         className="btn-secondary mb-6" 
         onClick={() => router.push('/reports')}

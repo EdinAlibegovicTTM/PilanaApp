@@ -7,6 +7,7 @@ import AuthGuard from '@/components/AuthGuard';
 import BackButton from '@/components/BackButton';
 import { FormConfig } from '@/types';
 import { toast } from 'react-hot-toast';
+import Header from '@/components/Header';
 
 function CreateFormContent() {
   const router = useRouter();
@@ -109,6 +110,7 @@ function CreateFormContent() {
   return (
     <AuthGuard>
       <div className="min-h-screen w-full bg-gray-100 p-0 m-0">
+        <Header />
         <form
           className="bg-white p-0 rounded shadow w-full h-full"
           onSubmit={handleSubmit}

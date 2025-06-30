@@ -8,6 +8,7 @@ import { DocumentTextIcon, PencilSquareIcon, TrashIcon, EyeIcon, ArrowsUpDownIco
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
+import Header from '@/components/Header';
 
 export default function FormsPage() {
   const [forms, setForms] = useState<FormConfig[]>([]);
@@ -124,6 +125,7 @@ export default function FormsPage() {
   if (currentUser?.role === 'admin') {
     return (
       <>
+        <Header />
         {/* Watermark logo u pozadini svih formi */}
         {globalLogo && logoLocations.includes('forms') && (
           <img
@@ -257,6 +259,7 @@ export default function FormsPage() {
   // Prikaz za KORISNIKA
   return (
     <>
+      <Header />
       {/* Watermark logo u pozadini svih formi */}
       {globalLogo && logoLocations.includes('forms') && (
         <img

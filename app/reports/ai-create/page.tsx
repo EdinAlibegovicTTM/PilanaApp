@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BackButton from '@/components/BackButton';
+import Header from '@/components/Header';
 
 export default function AICreateReport() {
   const [prompt, setPrompt] = useState('');
@@ -84,6 +85,7 @@ export default function AICreateReport() {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-8">
+      <Header />
       <BackButton className="mb-6" />
       {/* ADMIN PODEŠAVANJA */}
       {isAdmin && (

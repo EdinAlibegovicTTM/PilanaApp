@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Header from '@/components/Header';
 
 interface ReportTemplate {
   id: number;
@@ -128,6 +129,7 @@ function ReportBuilderContent() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      <Header />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <BackButton />

@@ -8,6 +8,7 @@ import { ChartBarIcon, DocumentTextIcon, PlusIcon, EyeIcon, PencilIcon, TrashIco
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
+import Header from '@/components/Header';
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportConfig[]>([]);
@@ -47,6 +48,7 @@ export default function ReportsPage() {
 
   return (
     <>
+      <Header />
       {/* Watermark logo u pozadini */}
       {globalLogo && logoLocations.includes('reports') && (
         <img

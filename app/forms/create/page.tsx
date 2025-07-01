@@ -38,6 +38,7 @@ function CreateFormContent() {
     const updatedConfig = {
       ...config,
       image: imagePreview || config.image || '',
+      backgroundColor: config.layout.backgroundColor,
       layout: {
         ...config.layout,
         backgroundColor: config.layout.backgroundColor,

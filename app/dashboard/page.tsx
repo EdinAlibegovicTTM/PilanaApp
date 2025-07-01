@@ -324,29 +324,6 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Quick Stats Section */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-8 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
-              <SparklesIcon className="h-6 w-6 text-purple-600" />
-              <h2 className="text-2xl font-bold text-gray-900">Brzi pregled</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-6 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200">
-                <div className="text-3xl font-bold text-blue-600 mb-2">∞</div>
-                <div className="text-sm text-blue-700 font-medium">Dostupne funkcionalnosti</div>
-              </div>
-              <div className="text-center p-6 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
-                <div className="text-3xl font-bold text-emerald-600 mb-2">24/7</div>
-                <div className="text-sm text-emerald-700 font-medium">Dostupnost sistema</div>
-              </div>
-              <div className="text-center p-6 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200">
-                <div className="text-3xl font-bold text-violet-600 mb-2">100%</div>
-                <div className="text-sm text-violet-700 font-medium">Sigurnost podataka</div>
-              </div>
-            </div>
-          </div>
-
           {/* Ako korisnik nema pristup ničemu */}
           {!canForms && !canReports && !canUsers && !canSettings && (
             <div className="text-center py-16">

@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { FormField } from '@/types';
 import useAppStore from '@/store/appStore';
+import { toast } from 'react-hot-toast';
 
 interface FormFieldComponentProps {
   field: FormField;
@@ -48,6 +49,17 @@ export default function FormFieldComponent({
       onChange({ target: { name: field.name, value: localDateTime } } as any);
     }
   }, [isInputMode, field.type, field.name, onChange, value]);
+
+  // Prikaži toast obavijest prvi put kad korisnik koristi geolokaciju
+  useEffect(() => {
+    if (isInputMode && typeof window !== 'undefined') {
+      const shown = localStorage.getItem('geo_permission_info');
+      if (!shown) {
+        toast('Dozvolite pristup lokaciji za automatsko popunjavanje ovog polja. Ako želite da vas više ne pita, označite "Always allow" u postavkama browsera.', { duration: 8000 });
+        localStorage.setItem('geo_permission_info', '1');
+      }
+    }
+  }, []);
 
   // Sakrivanje polja ako je opcija hidden
   if (field.options.hidden) {

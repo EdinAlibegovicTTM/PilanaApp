@@ -23,6 +23,7 @@ interface FormCanvasProps {
   showGrid: boolean;
   gridSnap: boolean;
   zoom: number;
+  fixedLayout: boolean;
 }
 
 function magnetSnap(x: number, y: number, grid: number, threshold = 8) {
@@ -76,7 +77,8 @@ export default function FormCanvas({
   onFieldDelete,
   showGrid,
   gridSnap,
-  zoom
+  zoom,
+  fixedLayout
 }: FormCanvasProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -164,23 +166,33 @@ export default function FormCanvas({
                 </div>
               )}
               {/* Polja (zIndex: 2) */}
-              <div style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ position: 'relative', zIndex: 2, display: fixedLayout ? 'block' : 'flex', flexDirection: fixedLayout ? undefined : 'column', flexWrap: fixedLayout ? undefined : 'wrap', gap: fixedLayout ? undefined : '1rem' }}>
                 {config.fields.map((field) => (
-                  <DraggableField
-                    key={field.id}
-                    id={field.id}
-                    field={field}
-                    isSelected={selectedField?.id === field.id}
-                    onClick={() => onFieldSelect(field)}
-                    onDelete={() => onFieldDelete(field.id)}
-                    showControls={selectedField?.id === field.id}
-                  >
-                    <FormFieldComponent
+                  fixedLayout ? (
+                    <DraggableField
+                      key={field.id}
+                      id={field.id}
                       field={field}
                       isSelected={selectedField?.id === field.id}
-                      isDragging={activeId === field.id}
-                    />
-                  </DraggableField>
+                      onClick={() => onFieldSelect(field)}
+                      onDelete={() => onFieldDelete(field.id)}
+                      showControls={selectedField?.id === field.id}
+                    >
+                      <FormFieldComponent
+                        field={field}
+                        isSelected={selectedField?.id === field.id}
+                        isDragging={activeId === field.id}
+                      />
+                    </DraggableField>
+                  ) : (
+                    <div key={field.id} style={{ width: '100%' }}>
+                      <FormFieldComponent
+                        field={field}
+                        isSelected={selectedField?.id === field.id}
+                        isDragging={activeId === field.id}
+                      />
+                    </div>
+                  )
                 ))}
               </div>
             </div>

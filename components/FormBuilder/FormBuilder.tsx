@@ -46,6 +46,7 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
   const [zoom, setZoom] = useState(100);
   const [showProperties, setShowProperties] = useState(false);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [fixedLayout, setFixedLayout] = useState(false);
 
   useEffect(() => {
     // Dohvati sve korisnike (za admina)
@@ -241,6 +242,17 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
                   ))}
                 </div>
               </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <label className="text-xs text-gray-500">Prikaz forme:</label>
+                <select
+                  className="text-xs border rounded px-2 py-1"
+                  value={fixedLayout ? 'fixed' : 'responsive'}
+                  onChange={e => setFixedLayout(e.target.value === 'fixed')}
+                >
+                  <option value="responsive">Responsive</option>
+                  <option value="fixed">Kao u builderu</option>
+                </select>
+              </div>
               <p className="text-sm text-gray-500">Kreirajte i uređujte forme</p>
             </div>
           </div>
@@ -312,6 +324,7 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
             showGrid={showGrid}
             gridSnap={gridSnap}
             zoom={zoom}
+            fixedLayout={fixedLayout}
           />
         </div>
 

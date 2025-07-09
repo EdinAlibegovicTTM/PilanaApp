@@ -46,7 +46,7 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
   const [zoom, setZoom] = useState(100);
   const [showProperties, setShowProperties] = useState(false);
   const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [fixedLayout, setFixedLayout] = useState(false);
+  const [fixedLayout, setFixedLayout] = useState(config.fixedLayout || false);
 
   useEffect(() => {
     // Dohvati sve korisnike (za admina)
@@ -158,6 +158,13 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
     }
   };
 
+  const handleFieldsReorder = (newFields: FormField[]) => {
+    setConfig(prev => ({
+      ...prev,
+      fields: newFields
+    }));
+  };
+
   const handleAddField = (fieldType: FieldType) => {
     const newField = createFieldFromType(fieldType, config.fields.length);
     
@@ -172,6 +179,8 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
   const handleSave = () => {
     const updatedConfig = {
       ...config,
+      backgroundColor: config.layout.backgroundColor, // eksplicitno šaljemo na root
+      fixedLayout,
       allowedUsers: config.allowedUsers || [],
       updatedAt: new Date(),
     };
@@ -321,6 +330,7 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
             onFieldSelect={handleFieldSelect}
             onFieldUpdate={handleFieldUpdate}
             onFieldDelete={handleFieldDelete}
+            onFieldsReorder={handleFieldsReorder}
             showGrid={showGrid}
             gridSnap={gridSnap}
             zoom={zoom}

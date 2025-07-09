@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormField } from '@/types';
 import useAppStore from '@/store/appStore';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
+import { EyeSlashIcon, StarIcon, LockClosedIcon, DocumentMagnifyingGlassIcon } from '@heroicons/react/24/solid';
 
 interface FormFieldComponentProps {
   field: FormField;
@@ -62,7 +64,7 @@ export default function FormFieldComponent({
   }, []);
 
   // Sakrivanje polja ako je opcija hidden
-  if (field.options.hidden) {
+  if (field.options.hidden && isInputMode) {
     return null;
   }
 
@@ -98,6 +100,8 @@ export default function FormFieldComponent({
               ))}
             </select>
           );
+        case 'smart-dropdown':
+          return <SmartDropdown field={field} {...commonProps} />;
         case 'checkbox':
           return (
             <div className="flex items-center">
@@ -179,7 +183,38 @@ export default function FormFieldComponent({
     opacity: isDragging ? 0.7 : 1,
     transition: 'box-shadow 0.2s',
     boxShadow: isSelected ? '0 0 0 2px #3b82f6' : 'none',
+    position: 'relative',
   };
+
+  // Badge prikaz za opcije (moderni dizajn s ikonama)
+  const optionBadges = (
+    <div className="absolute top-2 right-20 flex gap-1 z-40">
+      {field.options.permanent && (
+        <span title="Permanentno polje" className="group relative">
+          <LockClosedIcon className="w-4 h-4 text-blue-500 bg-white rounded-full shadow p-0.5 group-hover:scale-110 transition" />
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs rounded px-2 py-0.5 opacity-0 group-hover:opacity-100 pointer-events-none transition">Permanentno</span>
+        </span>
+      )}
+      {field.options.hidden && (
+        <span title="Skriveno polje" className="group relative">
+          <EyeSlashIcon className="w-4 h-4 text-gray-500 bg-white rounded-full shadow p-0.5 group-hover:scale-110 transition" />
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded px-2 py-0.5 opacity-0 group-hover:opacity-100 pointer-events-none transition">Skriveno</span>
+        </span>
+      )}
+      {field.options.readOnly && (
+        <span title="Samo za čitanje" className="group relative">
+          <DocumentMagnifyingGlassIcon className="w-4 h-4 text-gray-400 bg-white rounded-full shadow p-0.5 group-hover:scale-110 transition" />
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-500 text-white text-xs rounded px-2 py-0.5 opacity-0 group-hover:opacity-100 pointer-events-none transition">Samo za čitanje</span>
+        </span>
+      )}
+      {field.options.mandatory && (
+        <span title="Obavezno polje" className="group relative">
+          <StarIcon className="w-4 h-4 text-red-500 bg-white rounded-full shadow p-0.5 group-hover:scale-110 transition" />
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs rounded px-2 py-0.5 opacity-0 group-hover:opacity-100 pointer-events-none transition">Obavezno</span>
+        </span>
+      )}
+    </div>
+  );
 
   const renderBuilderField = () => {
     switch (field.type) {
@@ -206,6 +241,12 @@ export default function FormFieldComponent({
               ))}
             </select>
           );
+        case 'smart-dropdown':
+          return (
+            <div className="input-field bg-gray-100 text-gray-500">
+              Smart Dropdown - {field.options.catalogTab || 'Tab'} / {field.options.catalogColumn || 'Kolona'}
+            </div>
+          );
         // Dodati ostale tipove po potrebi
         default:
             return <div>{field.label}</div>
@@ -213,12 +254,119 @@ export default function FormFieldComponent({
   };
 
   return (
-    <div style={builderStyle} className="form-field select-none">
+    <div style={builderStyle}>
+      {optionBadges}
       <label className="block text-xs font-medium mb-1" style={{color: field.styling.textColor}}>
         {field.label}
         {field.options.mandatory && <span className="text-red-500 ml-1">*</span>}
       </label>
       {renderBuilderField()}
+    </div>
+  );
+}
+
+// SmartDropdown komponenta za zavisne dropdown-ove
+interface SmartDropdownProps {
+  field: FormField;
+  name: string;
+  placeholder?: string;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  required?: boolean;
+  className?: string;
+}
+
+function SmartDropdown({ field, name, placeholder, value, onChange, required, className }: SmartDropdownProps) {
+  const [options, setOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const { currentUser } = useAppStore();
+
+  // Dohvati opcije iz kataloga
+  const fetchOptions = async (dependencyValue?: string) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        tab: field.options.catalogTab || 'Import',
+        column: field.options.catalogColumn || 'F'
+      });
+
+      // Ako ima zavisnost, dodaj parametre
+      if (field.options.dependencyField && dependencyValue) {
+        params.append('dependencyColumn', field.options.dependencyColumn || 'A');
+        params.append('dependencyValue', dependencyValue);
+      }
+
+      const response = await axios.get(`/api/catalogs?${params}`);
+      setOptions(response.data.options || []);
+    } catch (error) {
+      console.error('Greška pri dohvatanju opcija:', error);
+      toast.error('Greška pri učitavanju opcija');
+      setOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Učitaj opcije pri mount-u
+  useEffect(() => {
+    fetchOptions();
+  }, [field.options.catalogTab, field.options.catalogColumn]);
+
+  // T9 pretraga
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (selectedValue: string) => {
+    if (onChange) {
+      const event = {
+        target: { value: selectedValue }
+      } as React.ChangeEvent<HTMLSelectElement>;
+      onChange(event);
+    }
+    setSearchTerm('');
+    setShowDropdown(false);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onFocus={() => setShowDropdown(true)}
+        placeholder={loading ? 'Učitavanje...' : (placeholder || 'Pretražite i odaberite...')}
+        className={className || "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"}
+        disabled={loading}
+      />
+      
+      {showDropdown && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {filteredOptions.length === 0 ? (
+            <div className="px-3 py-2 text-gray-500">Nema rezultata</div>
+          ) : (
+            filteredOptions.map((option, index) => (
+              <div
+                key={index}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSelect(option)}
+              >
+                {option}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+      
+      {/* Sakrij dropdown kad klikneš van njega */}
+      {showDropdown && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => setShowDropdown(false)}
+        />
+      )}
     </div>
   );
 } 

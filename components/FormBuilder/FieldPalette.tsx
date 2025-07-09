@@ -76,9 +76,9 @@ const fieldTypes: Array<{ type: FieldType; label: string; icon: React.ComponentT
   },
   {
     type: 'smart-dropdown',
-    label: 'Pametna lista',
+    label: 'Zavisni dropdown',
     icon: SparklesIcon,
-    description: 'Lista sa T9 pretragom'
+    description: 'Lista koja zavisi od drugog polja'
   }
 ];
 

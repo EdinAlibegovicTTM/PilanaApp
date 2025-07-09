@@ -150,6 +150,97 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
             onChange={e => handleOptionChange('importCell', e.target.value)}
           />
         </div>
+
+        {/* Smart Dropdown konfiguracija */}
+        {localField.type === 'smart-dropdown' && (
+          <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Smart Dropdown konfiguracija</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Sheet tab</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.catalogTab || 'Import'}
+                  onChange={e => handleOptionChange('catalogTab', e.target.value)}
+                  placeholder="Import"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Naziv taba u Google Sheet-u (npr. "Proizvodi", "Katalozi")
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Sheet kolona</label>
+                <select
+                  className="input-field"
+                  value={localField.options.catalogColumn || 'F'}
+                  onChange={e => handleOptionChange('catalogColumn', e.target.value)}
+                >
+                  <option value="A">A - Kolona A</option>
+                  <option value="B">B - Kolona B</option>
+                  <option value="C">C - Kolona C</option>
+                  <option value="D">D - Kolona D</option>
+                  <option value="E">E - Kolona E</option>
+                  <option value="F">F - Šifra_proizvoda</option>
+                  <option value="G">G - Naziv_proizvoda</option>
+                  <option value="H">H - Dimenzije</option>
+                  <option value="I">I - j/m</option>
+                  <option value="J">J - Visina</option>
+                  <option value="K">K - Širina</option>
+                  <option value="L">L - Dužina</option>
+                  <option value="M">M - m3</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Odaberite kolonu iz Sheet-a (A, B, C...)
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Linked grupa</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.linkedGroup || ''}
+                  onChange={e => handleOptionChange('linkedGroup', e.target.value)}
+                  placeholder="proizvod"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Naziv grupe za povezivanje dropdown-ova (npr. "proizvod" - svi dropdown-ovi sa istom grupom se povezuju)
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Zavisno polje (naziv)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dependencyField || ''}
+                  onChange={e => handleOptionChange('dependencyField', e.target.value)}
+                  placeholder="sumarija"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Naziv polja od kojeg zavisi ovaj dropdown (ostavite prazno ako nema zavisnosti)
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Zavisna kolona</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dependencyColumn || ''}
+                  onChange={e => handleOptionChange('dependencyColumn', e.target.value)}
+                  placeholder="A"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Kolona u katalogu koja se koristi za filtriranje (A, B, C...) - ostavite prazno ako nema zavisnosti
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* QR Lookup konfiguracija */}
         {localField.type === 'qr-scanner' && (
@@ -283,7 +374,7 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
         
         {/* Veličina polja */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Veličina polja</label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Veličina polja (trenutna: {localField.position.width}px)</label>
           <select
             className="input-field"
             value={(() => {
@@ -299,13 +390,14 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
               if (e.target.value === 'small') { width = 180; }
               if (e.target.value === 'medium') { width = 300; }
               if (e.target.value === 'large') { width = 420; }
+              console.log('Mijenjam veličinu na:', width);
               handleChange('position', { ...localField.position, width });
             }}
           >
-            <option value="xsmall">Uže</option>
-            <option value="small">Malo</option>
-            <option value="medium">Srednje</option>
-            <option value="large">Veliko</option>
+            <option value="xsmall">Uže (80px)</option>
+            <option value="small">Malo (180px)</option>
+            <option value="medium">Srednje (300px)</option>
+            <option value="large">Veliko (420px)</option>
           </select>
         </div>
       </div>

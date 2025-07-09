@@ -410,7 +410,7 @@ export default function FormPage({ params }: { params: { id: string } }) {
                 </div>
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {form.fields && form.fields.map(field => (
+                  {form.fields && form.fields.filter(field => !field.options.hidden).map(field => (
                     <FormFieldComponent
                       key={field.id}
                       field={field}

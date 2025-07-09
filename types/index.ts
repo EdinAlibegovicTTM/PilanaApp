@@ -31,6 +31,12 @@ export interface FieldOptions {
     custom?: string;
   };
   dropdownOptions?: string[];
+  // Smart dropdown opcije
+  catalogTab?: string;
+  catalogColumn?: string;
+  linkedGroup?: string;
+  dependencyField?: string;
+  dependencyColumn?: string;
   smartDropdownConfig?: {
     relatedField?: string;
     searchField?: string;
@@ -90,6 +96,7 @@ export interface FormConfig {
     backgroundColor: string;
     gridSize: number;
   };
+  fixedLayout?: boolean;
   googleSheetId: string;
   googleSheetName: string;
   requiresConfirmation: boolean;

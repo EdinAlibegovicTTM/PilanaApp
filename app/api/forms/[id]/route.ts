@@ -30,7 +30,7 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { name, description, backgroundColor, fields, allowedUsers, image, layout } = body;
+    const { name, description, backgroundColor, fields, allowedUsers, image, layout, fixedLayout } = body;
     
     // Izvuci backgroundColor iz layout objekta ako postoji
     const bgColor = backgroundColor || (layout?.backgroundColor) || '#ffffff';
@@ -44,6 +44,7 @@ export async function PUT(
         fields: JSON.stringify(fields),
         allowedUsers: JSON.stringify(allowedUsers || []),
         image: image,
+        fixedLayout: fixedLayout || false,
       }
     });
     const parsedForm = {

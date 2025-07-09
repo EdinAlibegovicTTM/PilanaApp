@@ -1,18 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormConfig, FormField } from '@/types';
 import FormFieldComponent from './FormFieldComponent';
 import { TrashIcon, CogIcon } from '@heroicons/react/24/outline';
 import {
   DndContext,
   useDraggable,
+  useDroppable,
   closestCenter,
   PointerSensor,
   useSensor,
-  useSensors
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverEvent
 } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
+import { motion } from 'framer-motion';
 
 interface FormCanvasProps {
   config: FormConfig;
@@ -20,6 +25,7 @@ interface FormCanvasProps {
   onFieldSelect: (field: FormField) => void;
   onFieldUpdate: (fieldId: string, updates: Partial<FormField>) => void;
   onFieldDelete: (fieldId: string) => void;
+  onFieldsReorder?: (newOrder: FormField[]) => void;
   showGrid: boolean;
   gridSnap: boolean;
   zoom: number;
@@ -75,42 +81,94 @@ export default function FormCanvas({
   onFieldSelect,
   onFieldUpdate,
   onFieldDelete,
+  onFieldsReorder,
   showGrid,
   gridSnap,
   zoom,
   fixedLayout
 }: FormCanvasProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [liveFields, setLiveFields] = useState<FormField[]>(config.fields);
   const sensors = useSensors(useSensor(PointerSensor));
 
-  function handleDragStart(event: any) {
-    setActiveId(event.active.id);
+  // Ažuriraj liveFields kada se config.fields promijeni
+  useEffect(() => {
+    setLiveFields(config.fields);
+  }, [config.fields]);
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
   }
 
-  function handleDragEnd(event: any) {
-    const { active, delta } = event;
-    if (!active.id) return;
-    const field = config.fields.find(f => f.id === active.id);
-    if (!field) return;
-    let { x, y } = field.position || { x: 0, y: 0 };
-    x += delta.x;
-    y += delta.y;
-    const width = field.position?.width || 300;
-    const height = field.position?.height || 60;
-    if (gridSnap) {
-      // Prvo magnet na ivice drugih polja, pa onda na grid
-      const snapped = edgeMagnetSnap(x, y, width, height, config.fields, active.id, config.layout.gridSize || 20, 16);
-      x = snapped.x;
-      y = snapped.y;
+  function handleDragOver(event: DragOverEvent) {
+    if (!fixedLayout && event.active && event.over && event.active.id !== event.over?.id) {
+      const oldIndex = liveFields.findIndex(f => f.id === String(event.active.id));
+      const newIndex = liveFields.findIndex(f => f.id === String(event.over!.id));
+      
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        // Dodaj throttling za glađe animacije
+        const newFields = [...liveFields];
+        const [movedField] = newFields.splice(oldIndex, 1);
+        newFields.splice(newIndex, 0, movedField);
+        
+        // Koristi requestAnimationFrame za glađe tranzicije
+        requestAnimationFrame(() => {
+          setLiveFields(newFields);
+        });
+      }
     }
-    onFieldUpdate(active.id, { position: { ...field.position, x, y } });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!active.id) return;
+    
+    const field = config.fields.find(f => f.id === String(active.id));
+    if (!field) return;
+    
+    if (fixedLayout) {
+      // U fixed layout modu, ažuriraj x,y pozicije
+      const delta = event.delta;
+      let { x, y } = field.position || { x: 0, y: 0 };
+      x += delta.x;
+      y += delta.y;
+      const width = field.position?.width || 300;
+      const height = field.position?.height || 60;
+      if (gridSnap) {
+        // Prvo magnet na ivice drugih polja, pa onda na grid
+        const snapped = edgeMagnetSnap(x, y, width, height, config.fields, String(active.id), config.layout.gridSize || 20, 16);
+        x = snapped.x;
+        y = snapped.y;
+      }
+      onFieldUpdate(String(active.id), { position: { ...field.position, x, y } });
+    } else {
+      // U responsive modu, implementiraj reordering
+      if (over && over.id !== active.id) {
+        const oldIndex = config.fields.findIndex(f => f.id === String(active.id));
+        const newIndex = config.fields.findIndex(f => f.id === String(over.id));
+        
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const newFields = [...config.fields];
+          const [movedField] = newFields.splice(oldIndex, 1);
+          newFields.splice(newIndex, 0, movedField);
+          
+          // Pozovi callback za reordering ako postoji
+          if (onFieldsReorder) {
+            onFieldsReorder(newFields);
+          }
+        }
+      }
+    }
+    
+    // Resetuj liveFields na originalni redoslijed
+    setLiveFields(config.fields);
     setActiveId(null);
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col transition-all duration-300 ease-out">
       {/* Canvas Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white border-b border-gray-200 px-6 py-3 transition-all duration-300 ease-out">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-medium text-gray-900">{config.name}</h2>
@@ -126,16 +184,17 @@ export default function FormCanvas({
         </div>
       </div>
       {/* Canvas Area */}
-      <div className="flex-1 overflow-auto bg-gray-100">
+      <div className="flex-1 overflow-auto bg-gray-100 transition-all duration-300 ease-out">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
           modifiers={[restrictToWindowEdges]}
         >
           <div
-            className={`relative min-h-full p-8 select-none ${showGrid ? 'bg-grid-pattern' : ''}`}
+            className={`relative min-h-full p-8 select-none transition-all duration-300 ease-out ${showGrid ? 'bg-grid-pattern' : ''}`}
             style={{
               transform: `scale(${zoom / 100})`,
               transformOrigin: 'top left',
@@ -145,10 +204,12 @@ export default function FormCanvas({
           >
             {/* Grid lines */}
             {showGrid && (
-              <GridLines gridSize={config.layout.gridSize || 20} />
+              <div className="transition-opacity duration-300 ease-out">
+                <GridLines gridSize={config.layout.gridSize || 20} />
+              </div>
             )}
             <div
-              className="relative w-full"
+              className="relative w-full transition-all duration-300 ease-out"
               style={{
                 backgroundColor: config.layout.backgroundColor,
                 minHeight: '800px',
@@ -161,39 +222,50 @@ export default function FormCanvas({
             >
               {/* Grid lines unutar forme */}
               {showGrid && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }} className="transition-opacity duration-300 ease-out">
                   <GridLines gridSize={config.layout.gridSize || 20} />
                 </div>
               )}
               {/* Polja (zIndex: 2) */}
-              <div style={{ position: 'relative', zIndex: 2, display: fixedLayout ? 'block' : 'flex', flexDirection: fixedLayout ? undefined : 'column', flexWrap: fixedLayout ? undefined : 'wrap', gap: fixedLayout ? undefined : '1rem' }}>
-                {config.fields.map((field) => (
-                  fixedLayout ? (
-                    <DraggableField
-                      key={field.id}
-                      id={field.id}
+              <div 
+                style={{ 
+                  position: 'relative', 
+                  zIndex: 2, 
+                  display: fixedLayout ? 'block' : 'flex', 
+                  flexDirection: fixedLayout ? undefined : 'column', 
+                  flexWrap: fixedLayout ? undefined : 'wrap', 
+                  gap: fixedLayout ? undefined : '1rem' 
+                }}
+                className="transition-all duration-300 ease-out"
+              >
+                {liveFields.map((field) => (
+                  <DraggableField
+                    key={field.id}
+                    id={field.id}
+                    field={field}
+                    isSelected={selectedField?.id === field.id}
+                    onClick={() => onFieldSelect(field)}
+                    onDelete={() => onFieldDelete(field.id)}
+                    showControls={selectedField?.id === field.id}
+                    fixedLayout={fixedLayout}
+                  >
+                    <FormFieldComponent
                       field={field}
                       isSelected={selectedField?.id === field.id}
-                      onClick={() => onFieldSelect(field)}
-                      onDelete={() => onFieldDelete(field.id)}
-                      showControls={selectedField?.id === field.id}
-                    >
-                      <FormFieldComponent
-                        field={field}
-                        isSelected={selectedField?.id === field.id}
-                        isDragging={activeId === field.id}
-                      />
-                    </DraggableField>
-                  ) : (
-                    <div key={field.id} style={{ width: '100%' }}>
-                      <FormFieldComponent
-                        field={field}
-                        isSelected={selectedField?.id === field.id}
-                        isDragging={activeId === field.id}
-                      />
-                    </div>
-                  )
+                      isDragging={activeId === field.id}
+                    />
+                  </DraggableField>
                 ))}
+                {/* Placeholder za drop zone */}
+                {activeId && !fixedLayout && (
+                  <div className="w-full h-16 border-2 border-dashed border-blue-400/60 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-lg flex items-center justify-center transition-all duration-300 ease-out hover:border-blue-500/80 hover:bg-gradient-to-r hover:from-blue-100/90 hover:to-indigo-100/90">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span className="text-blue-600 text-sm font-medium">Ovdje će se polje premjestiti</span>
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -203,56 +275,97 @@ export default function FormCanvas({
   );
 }
 
-function DraggableField({ id, field, isSelected, onClick, onDelete, showControls, children }: any) {
+function DraggableField({ id, field, isSelected, onClick, onDelete, showControls, fixedLayout, children }: any) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id });
+  
   // Izračunaj poziciju tokom draganja
-  const style = {
+  const style = fixedLayout ? {
     left: (field.position?.x || 0) + (transform?.x || 0),
     top: (field.position?.y || 0) + (transform?.y || 0),
     width: field.position?.width || 300,
     height: field.position?.height || 60,
-    opacity: isDragging ? 0.8 : 1,
+    opacity: isDragging ? 0.9 : 1,
     zIndex: isDragging ? 50 : 10,
-    transform: isDragging ? 'rotate(2deg)' : 'none',
-    transition: isDragging ? 'none' : 'all 0.2s',
+    transform: isDragging ? 'rotate(1deg) scale(1.02)' : 'none',
+    transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  } : {
+    width: '100%',
+    opacity: isDragging ? 0.95 : 1,
+    zIndex: isDragging ? 50 : 10,
+    transform: isDragging ? 'scale(1.02) translateY(-2px)' : 'none',
+    transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: isDragging ? '0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1)' : 'none',
+    filter: isDragging ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' : 'none',
   } as React.CSSProperties;
   return (
-    <div
-      ref={setNodeRef}
-      className={`absolute select-none transition-all duration-200 hover:shadow-lg ${isDragging ? 'z-50 cursor-grabbing' : 'z-10 cursor-pointer'} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-      style={style}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
+    <motion.div
+      layout
+      ref={fixedLayout ? setNodeRef : (node) => {
+        setNodeRef(node);
+        setDropRef(node);
       }}
+      className={`${fixedLayout ? 'absolute' : 'relative'} select-none transition-all duration-300 ease-out hover:shadow-lg hover:scale-[1.01] ${isDragging ? 'z-50 cursor-grabbing' : 'z-10 cursor-pointer'} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''} ${isOver && !fixedLayout && !isDragging ? 'bg-blue-50/80 border-2 border-blue-300/60 shadow-lg' : ''} ${isOver && !fixedLayout && isDragging ? 'bg-green-50/90 border-2 border-green-400/80 shadow-xl' : ''}`}
+      style={style}
     >
-      {/* Grip handle za drag & drop - sada desno i poluprovidan */}
-      <div
-        {...listeners}
-        {...attributes}
-        className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-gray-200 bg-opacity-50 rounded cursor-grab active:cursor-grabbing z-30 shadow border border-gray-300 hover:bg-blue-200 transition-colors duration-150"
-        style={{ userSelect: 'none', margin: 0 }}
-        title="Povuci za pomicanje"
-      >
-        <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-          <circle cx="6" cy="6" r="1.5" fill="#888" />
-          <circle cx="14" cy="6" r="1.5" fill="#888" />
-          <circle cx="6" cy="14" r="1.5" fill="#888" />
-          <circle cx="14" cy="14" r="1.5" fill="#888" />
-        </svg>
+      {/* Responsive: klik na polje selektuje, grip desno za drag */}
+      {!fixedLayout && (
+        <div
+          className="absolute inset-0 z-10"
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          style={{ cursor: 'pointer' }}
+        />
+      )}
+      {/* Grip handle za drag & drop */}
+      {!fixedLayout && (
+        <div
+          {...listeners}
+          {...attributes}
+          className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg cursor-grab active:cursor-grabbing z-30 shadow-lg border border-gray-200/60 hover:bg-blue-50 hover:border-blue-300/60 hover:shadow-xl transition-all duration-200 ease-out group"
+          style={{ userSelect: 'none', margin: 0 }}
+          title="Povuci za promjenu redoslijeda"
+          onClick={e => e.stopPropagation()}
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="transition-colors duration-200 group-hover:fill-blue-600">
+            <circle cx="6" cy="6" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="14" cy="6" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="6" cy="14" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="14" cy="14" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+          </svg>
+        </div>
+      )}
+      {/* Fixed layout: cijelo polje je draggable, klik otvara podešavanja */}
+      {fixedLayout && (
+        <div
+          {...listeners}
+          {...attributes}
+          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg cursor-grab active:cursor-grabbing z-30 shadow-lg border border-gray-200/60 hover:bg-blue-50 hover:border-blue-300/60 hover:shadow-xl transition-all duration-200 ease-out group"
+          style={{ userSelect: 'none', margin: 0 }}
+          title="Povuci za pomicanje"
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="transition-colors duration-200 group-hover:fill-blue-600">
+            <circle cx="6" cy="6" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="14" cy="6" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="6" cy="14" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+            <circle cx="14" cy="14" r="1.5" fill="#6b7280" className="group-hover:fill-blue-600" />
+          </svg>
+        </div>
+      )}
+      {/* Sadržaj polja */}
+      <div className={`relative ${!isSelected && !fixedLayout ? 'pointer-events-none' : ''}`}>
+        {children}
       </div>
-      {children}
       {showControls && (
-        <div className="absolute -top-8 -right-8 flex items-center space-x-1 z-30">
+        <div className={`${fixedLayout ? 'absolute -top-8 -right-8' : 'absolute top-2 right-10'} flex items-center space-x-1 z-30`}>
           <button
             onPointerDown={e => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onClick();
             }}
-            className="p-1 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50"
+            className="p-1.5 bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-lg shadow-lg hover:bg-blue-50 hover:border-blue-300/60 hover:shadow-xl transition-all duration-200 ease-out group"
           >
-            <CogIcon className="h-3 w-3 text-gray-600" />
+            <CogIcon className="h-3.5 w-3.5 text-gray-600 group-hover:text-blue-600 transition-colors duration-200" />
           </button>
           <button
             onPointerDown={e => e.stopPropagation()}
@@ -260,13 +373,13 @@ function DraggableField({ id, field, isSelected, onClick, onDelete, showControls
               e.stopPropagation();
               onDelete();
             }}
-            className="p-1 bg-red-50 border border-red-300 rounded shadow-sm hover:bg-red-100"
+            className="p-1.5 bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-lg shadow-lg hover:bg-red-50 hover:border-red-300/60 hover:shadow-xl transition-all duration-200 ease-out group"
           >
-            <TrashIcon className="h-3 w-3 text-red-600" />
+            <TrashIcon className="h-3.5 w-3.5 text-gray-600 group-hover:text-red-600 transition-colors duration-200" />
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

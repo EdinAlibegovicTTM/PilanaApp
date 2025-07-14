@@ -51,6 +51,12 @@ const fieldTypes: Array<{ type: FieldType; label: string; icon: React.ComponentT
     description: 'Skeniranje QR kodova'
   },
   {
+    type: 'qr-generator',
+    label: 'Generator QR koda',
+    icon: QrCodeIcon,
+    description: 'Polje za automatsko ili ručno generisanje QR koda'
+  },
+  {
     type: 'geolocation',
     label: 'Lokacija',
     icon: MapPinIcon,
@@ -79,6 +85,12 @@ const fieldTypes: Array<{ type: FieldType; label: string; icon: React.ComponentT
     label: 'Zavisni dropdown',
     icon: SparklesIcon,
     description: 'Lista koja zavisi od drugog polja'
+  },
+  {
+    type: 'dinamicko-polje',
+    label: 'Dinamičko polje',
+    icon: QrCodeIcon,
+    description: 'Polje sa skeniranjem, unosom i dinamičkim dohvatom podataka'
   }
 ];
 

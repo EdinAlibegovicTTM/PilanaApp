@@ -6,6 +6,7 @@ import useAppStore from '@/store/appStore';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import { EyeSlashIcon, StarIcon, LockClosedIcon, DocumentMagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface FormFieldComponentProps {
   field: FormField;
@@ -16,6 +17,7 @@ interface FormFieldComponentProps {
   isInputMode?: boolean;
   value?: any;
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  isAutoFilled?: boolean; // Novo: flag za highlight automatski popunjenih polja
 }
 
 export default function FormFieldComponent({
@@ -25,6 +27,7 @@ export default function FormFieldComponent({
   isInputMode = false,
   value,
   onChange,
+  isAutoFilled = false, // Novo: flag za highlight
 }: FormFieldComponentProps) {
   const { currentUser } = useAppStore();
 
@@ -77,7 +80,9 @@ export default function FormFieldComponent({
         value: value || '',
         onChange: onChange,
         required: field.options.mandatory,
-        className: "w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+        className: `w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${
+          isAutoFilled ? 'bg-blue-50 border-blue-300' : ''
+        }` // Novo: vizualni highlight za automatski popunjena polja
       };
 
       switch (field.type) {
@@ -148,6 +153,119 @@ export default function FormFieldComponent({
         }
         case 'formula':
             return <input type="text" {...commonProps} value={value || 'Formula'} readOnly />;
+        case 'dinamicko-polje': {
+          const dynamic = field.options.dynamicSource as Partial<{
+            label: string;
+            sourceType: string;
+            scanEnabled: boolean;
+            inputEnabled: boolean;
+            uniqueFormula: string;
+            sumifsFormula: string;
+            targetColumn: string;
+          }> || {};
+          return (
+            <div className="flex flex-col gap-2">
+              {dynamic.label && <label className="text-xs font-medium text-gray-700">{dynamic.label}</label>}
+              <div className="flex gap-2">
+                {dynamic.inputEnabled && (
+                  <input
+                    type="text"
+                    name={field.name}
+                    placeholder={field.options.placeholder || 'Unesite vrijednost ili skenirajte...'}
+                    value={value || ''}
+                    onChange={onChange}
+                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                )}
+                {dynamic.scanEnabled && (
+                  <button
+                    type="button"
+                    className="btn-secondary whitespace-nowrap"
+                    onClick={() => {
+                      // Ovdje možeš integrisati QR/Barcode skener logiku
+                      if (onChange) {
+                        onChange({ target: { name: field.name, value: 'SKENIRANO' } } as any);
+                      }
+                    }}
+                  >
+                    Skeniraj
+                  </button>
+                )}
+              </div>
+              {/* Prikaz rezultata/formula po potrebi */}
+              {dynamic.uniqueFormula && (
+                <div className="text-xs text-blue-600 mt-1">Unique formula: {dynamic.uniqueFormula}</div>
+              )}
+              {dynamic.sumifsFormula && (
+                <div className="text-xs text-green-600 mt-1">SUMIFS formula: {dynamic.sumifsFormula}</div>
+              )}
+            </div>
+          );
+        }
+        case 'qr-generator': {
+          const qrConfig = field.options.qrGeneratorConfig as Partial<{
+            mode: 'random' | 'params' | 'manual';
+            params?: string[];
+            value?: string;
+          }> || {};
+          const qrValue =
+            qrConfig.mode === 'manual'
+              ? value || ''
+              : qrConfig.mode === 'random'
+              ? value || ''
+              : qrConfig.mode === 'params'
+              ? value || ''
+              : '';
+          return (
+            <div className="flex flex-col gap-2">
+              {qrConfig.mode === 'manual' && (
+                <input
+                  type="text"
+                  name={field.name}
+                  placeholder={field.options.placeholder || 'Unesite vrijednost za QR kod'}
+                  value={value || ''}
+                  onChange={onChange}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              )}
+              {qrConfig.mode === 'random' && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+                    if (onChange) {
+                      onChange({ target: { name: field.name, value: uuid } } as any);
+                    }
+                  }}
+                >
+                  Generiši random QR kod
+                </button>
+              )}
+              {qrConfig.mode === 'params' && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    // Kombinuj vrijednosti parametara iz formData (nije implementirano ovdje, placeholder)
+                    if (onChange) {
+                      onChange({ target: { name: field.name, value: 'PARAMS_KOD' } } as any);
+                    }
+                  }}
+                >
+                  Generiši QR kod iz parametara
+                </button>
+              )}
+              {/* Prikaz QR koda */}
+              {qrValue && (
+                <div className="flex flex-col items-center mt-2">
+                  <QRCodeCanvas value={qrValue} size={128} />
+                  <div className="text-xs text-gray-500 mt-1">{qrValue}</div>
+                </div>
+              )}
+            </div>
+          );
+        }
         default:
           return <input type="text" {...commonProps} />;
       }

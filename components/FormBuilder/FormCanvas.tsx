@@ -238,24 +238,36 @@ export default function FormCanvas({
                 }}
                 className="transition-all duration-300 ease-out"
               >
-                {liveFields.map((field) => (
-                  <DraggableField
-                    key={field.id}
-                    id={field.id}
-                    field={field}
-                    isSelected={selectedField?.id === field.id}
-                    onClick={() => onFieldSelect(field)}
-                    onDelete={() => onFieldDelete(field.id)}
-                    showControls={selectedField?.id === field.id}
-                    fixedLayout={fixedLayout}
-                  >
-                    <FormFieldComponent
+                {liveFields.map((field) => {
+                  let value;
+                  // Ako je qr-generator i mode params, generiši vrijednost iz parametara
+                  if (field.type === 'qr-generator' && field.options.qrGeneratorConfig?.mode === 'params') {
+                    const params = field.options.qrGeneratorConfig.params || [];
+                    value = params.map(paramName => {
+                      const paramField = liveFields.find(f => f.name === paramName);
+                      return paramField && paramField.options.defaultValue ? paramField.options.defaultValue : '';
+                    }).join('-');
+                  }
+                  return (
+                    <DraggableField
+                      key={field.id}
+                      id={field.id}
                       field={field}
                       isSelected={selectedField?.id === field.id}
-                      isDragging={activeId === field.id}
-                    />
-                  </DraggableField>
-                ))}
+                      onClick={() => onFieldSelect(field)}
+                      onDelete={() => onFieldDelete(field.id)}
+                      showControls={selectedField?.id === field.id}
+                      fixedLayout={fixedLayout}
+                    >
+                      <FormFieldComponent
+                        field={field}
+                        isSelected={selectedField?.id === field.id}
+                        isDragging={activeId === field.id}
+                        value={value}
+                      />
+                    </DraggableField>
+                  );
+                })}
                 {/* Placeholder za drop zone */}
                 {activeId && !fixedLayout && (
                   <div className="w-full h-16 border-2 border-dashed border-blue-400/60 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-lg flex items-center justify-center transition-all duration-300 ease-out hover:border-blue-500/80 hover:bg-gradient-to-r hover:from-blue-100/90 hover:to-indigo-100/90">

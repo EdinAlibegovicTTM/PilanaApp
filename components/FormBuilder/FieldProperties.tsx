@@ -372,6 +372,158 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
           </div>
         )}
         
+        {/* QR Generator konfiguracija */}
+        {localField.type === 'qr-generator' && (
+          <div className="border border-gray-200 rounded-lg p-4 bg-green-50">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Generator QR koda</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Način generisanja</label>
+                <select
+                  className="input-field"
+                  value={localField.options.qrGeneratorConfig?.mode || 'random'}
+                  onChange={e => handleOptionChange('qrGeneratorConfig', {
+                    ...localField.options.qrGeneratorConfig,
+                    mode: e.target.value
+                  })}
+                >
+                  <option value="random">Random (UUID)</option>
+                  <option value="params">Na osnovu parametara</option>
+                  <option value="manual">Ručno</option>
+                </select>
+              </div>
+              {localField.options.qrGeneratorConfig?.mode === 'params' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Parametri (nazivi polja, odvojeni zarezom)</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={localField.options.qrGeneratorConfig?.params?.join(',') || ''}
+                    onChange={e => handleOptionChange('qrGeneratorConfig', {
+                      ...localField.options.qrGeneratorConfig,
+                      params: e.target.value.split(',').map(s => s.trim())
+                    })}
+                    placeholder="npr. broj_ponude, datum, korisnik"
+                  />
+                </div>
+              )}
+              {localField.options.qrGeneratorConfig?.mode === 'manual' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Vrijednost QR koda</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={localField.options.qrGeneratorConfig?.value || ''}
+                    onChange={e => handleOptionChange('qrGeneratorConfig', {
+                      ...localField.options.qrGeneratorConfig,
+                      value: e.target.value
+                    })}
+                    placeholder="Unesite vrijednost za QR kod"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Dinamičko polje konfiguracija */}
+        {localField.type === 'dinamicko-polje' && (
+          <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Dinamičko polje konfiguracija</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Naziv polja</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dynamicSource?.label || ''}
+                  onChange={e => handleOptionChange('dynamicSource', {
+                    ...localField.options.dynamicSource,
+                    label: e.target.value
+                  })}
+                  placeholder="Naziv za prikaz (opcionalno)"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Izvor podataka</label>
+                <select
+                  className="input-field"
+                  value={localField.options.dynamicSource?.sourceType || 'ponuda'}
+                  onChange={e => handleOptionChange('dynamicSource', {
+                    ...localField.options.dynamicSource,
+                    sourceType: e.target.value
+                  })}
+                >
+                  <option value="ponuda">Ponuda</option>
+                  <option value="radni-nalog">Radni nalog</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={!!localField.options.dynamicSource?.scanEnabled}
+                    onChange={e => handleOptionChange('dynamicSource', {
+                      ...localField.options.dynamicSource,
+                      scanEnabled: e.target.checked
+                    })}
+                  /> Prikaži dugme skeniraj
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={!!localField.options.dynamicSource?.inputEnabled}
+                    onChange={e => handleOptionChange('dynamicSource', {
+                      ...localField.options.dynamicSource,
+                      inputEnabled: e.target.checked
+                    })}
+                  /> Prikaži polje za upis
+                </label>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Unique formula</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dynamicSource?.uniqueFormula || ''}
+                  onChange={e => handleOptionChange('dynamicSource', {
+                    ...localField.options.dynamicSource,
+                    uniqueFormula: e.target.value
+                  })}
+                  placeholder="=UNIQUE(...)"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">SUMIFS formula</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dynamicSource?.sumifsFormula || ''}
+                  onChange={e => handleOptionChange('dynamicSource', {
+                    ...localField.options.dynamicSource,
+                    sumifsFormula: e.target.value
+                  })}
+                  placeholder="=SUMIFS(...)"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ciljna kolona (za formulu)</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={localField.options.dynamicSource?.targetColumn || ''}
+                  onChange={e => handleOptionChange('dynamicSource', {
+                    ...localField.options.dynamicSource,
+                    targetColumn: e.target.value
+                  })}
+                  placeholder="npr. kolicina"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Veličina polja */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Veličina polja (trenutna: {localField.position.width}px)</label>

@@ -14,6 +14,7 @@ import autoTable from 'jspdf-autotable';
 import AuthGuard from "@/components/AuthGuard";
 import Header from "@/components/Header";
 import useStoreHydrated from '@/hooks/useStoreHydrated';
+import { saveAs } from 'file-saver';
 
 export default function FormPage({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<FormConfig | null>(null);
@@ -32,6 +33,37 @@ export default function FormPage({ params }: { params: { id: string } }) {
   const codeReader = new BrowserMultiFormatReader();
   const formRef = useRef<HTMLDivElement>(null);
   const [isQrScanned, setIsQrScanned] = useState(false);
+  const [tableData, setTableData] = useState<any[]>([]); // Novo: stanje za tabelu
+  const [isLoadingData, setIsLoadingData] = useState(false); // Novo: loading indikator
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set()); // Novo: highlight automatski popunjenih polja
+
+  // Novo: formule za tabelu (možeš kasnije učitati iz konfiguracije forme)
+  const [tableFormulas, setTableFormulas] = useState<string[]>(["=SUM(kolicina)", "=AVERAGE(cijena)", "=COUNT(proizvod)", "=CONCAT(napomena)"]);
+
+  // Evaluacija formula nad tabelom
+  const evaluateTableFormula = (formula: string) => {
+    if (!tableData || tableData.length === 0) return '';
+    if (formula.startsWith('=SUM(')) {
+      const col = formula.replace('=SUM(', '').replace(')', '').trim();
+      const sum = tableData.reduce((acc, row) => acc + (parseFloat(row[col]) || 0), 0);
+      return sum;
+    }
+    if (formula.startsWith('=AVERAGE(')) {
+      const col = formula.replace('=AVERAGE(', '').replace(')', '').trim();
+      const nums = tableData.map(row => parseFloat(row[col])).filter(n => !isNaN(n));
+      if (nums.length === 0) return 0;
+      return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
+    }
+    if (formula.startsWith('=COUNT(')) {
+      const col = formula.replace('=COUNT(', '').replace(')', '').trim();
+      return tableData.filter(row => row[col] !== undefined && row[col] !== '').length;
+    }
+    if (formula.startsWith('=CONCAT(')) {
+      const col = formula.replace('=CONCAT(', '').replace(')', '').trim();
+      return tableData.map(row => row[col] || '').join(', ');
+    }
+    return '';
+  };
 
   // Funkcija za dobijanje lokalnog datuma i vremena
   const getLocalDateTime = () => {
@@ -113,6 +145,24 @@ export default function FormPage({ params }: { params: { id: string } }) {
     }
   }, [form, formData]);
 
+  // Automatsko ažuriranje QR generator polja (params mode) na osnovu promjena formData
+  useEffect(() => {
+    if (!form) return;
+    let updated = false;
+    const newFormData = { ...formData };
+    form.fields.forEach(field => {
+      if (field.type === 'qr-generator' && field.options.qrGeneratorConfig?.mode === 'params') {
+        const params = field.options.qrGeneratorConfig.params || [];
+        const qrValue = params.map(paramName => newFormData[paramName] || '').join('-');
+        if (newFormData[field.name] !== qrValue) {
+          newFormData[field.name] = qrValue;
+          updated = true;
+        }
+      }
+    });
+    if (updated) setFormData(newFormData);
+  }, [form, formData]);
+
   // Novi useEffect za QR skener
   useEffect(() => {
     if (isQrModalOpen) setIsQrScanned(false); // Resetuj flag svaki put kad se modal otvori
@@ -141,7 +191,7 @@ export default function FormPage({ params }: { params: { id: string } }) {
     };
   }, [isQrModalOpen, qrFieldName, codeReader, isQrScanned]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
     // Provjera za trigger-e
@@ -173,6 +223,93 @@ export default function FormPage({ params }: { params: { id: string } }) {
         setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value }));
+    }
+
+    // --- NOVO: automatsko popunjavanje na osnovu dinamičkog polja ---
+    if (!form) return;
+    // Pronađi polje koje je promijenjeno
+    const changedField = form.fields.find(f => f.name === name);
+    if (
+      changedField &&
+      changedField.type === 'dinamicko-polje' &&
+      changedField.options.dynamicSource?.sourceType &&
+      (changedField.options.dynamicSource.sourceType === 'ponuda' || changedField.options.dynamicSource.sourceType === 'radni-nalog' || changedField.options.dynamicSource.sourceType === 'custom') &&
+      changedField.options.qrLookupConfig
+    ) {
+      setIsLoadingData(true); // NOVO: loading indikator
+      const lookupConfig = changedField.options.qrLookupConfig;
+      try {
+        const res = await axios.post('/api/qr-lookup', {
+          qrCode: value,
+          tableName: lookupConfig.tableName,
+          searchColumn: lookupConfig.searchColumn,
+          returnColumns: lookupConfig.returnColumns,
+        });
+        if (res.data && res.data.data && res.data.data.length > 0) {
+          // Ako ima više redova, popuni tableData
+          if (res.data.data.length > 1) {
+            setTableData(res.data.data);
+            toast.success('Više redova je automatski popunjeno u tabelu!');
+          }
+          const row = res.data.data[0];
+          // Mapiraj podatke iz odgovora na polja forme
+          if (lookupConfig.targetFields && Array.isArray(lookupConfig.targetFields)) {
+            const updates: Record<string, any> = {};
+            const newAutoFilled = new Set<string>(); // NOVO: praćenje automatski popunjenih polja
+            lookupConfig.targetFields.forEach(map => {
+              if (map.fieldId && map.columnName && row[map.columnName] !== undefined) {
+                // Pronađi polje po id-u i upiši vrijednost
+                const targetField = form.fields.find(f => f.id === map.fieldId);
+                if (targetField) {
+                  updates[targetField.name] = row[map.columnName];
+                  newAutoFilled.add(targetField.name); // NOVO: označi kao automatski popunjeno
+                }
+              }
+            });
+            // --- NOVO: evaluacija unique i sumifs formula ---
+            form.fields.forEach(f => {
+              if (f.type === 'dinamicko-polje' && f.options.dynamicSource) {
+                const dyn = f.options.dynamicSource;
+                // UNIQUE formula: npr. =UNIQUE(kolicina, proizvod)
+                if (dyn.uniqueFormula && dyn.uniqueFormula.startsWith('=UNIQUE(')) {
+                  const params = dyn.uniqueFormula.replace('=UNIQUE(', '').replace(')', '').split(',').map(s => s.trim());
+                  const values = params.map(p => updates[p] || formData[p] || '').filter(Boolean);
+                  updates[f.name] = Array.from(new Set(values)).join(', ');
+                  newAutoFilled.add(f.name); // NOVO: označi kao automatski popunjeno
+                }
+                // SUMIFS formula: npr. =SUMIFS(kolicina, proizvod, "Drvo")
+                if (dyn.sumifsFormula && dyn.sumifsFormula.startsWith('=SUMIFS(')) {
+                  // Format: =SUMIFS(kolicina, proizvod, "Drvo")
+                  const parts = dyn.sumifsFormula.replace('=SUMIFS(', '').replace(')', '').split(',').map(s => s.trim());
+                  const [sumField, criteriaField, criteriaValue] = parts;
+                  if (sumField && criteriaField && criteriaValue) {
+                    const sumVal = Number(updates[sumField] || formData[sumField] || 0);
+                    const critVal = updates[criteriaField] || formData[criteriaField] || '';
+                    if (String(critVal) === criteriaValue.replace(/['"]/g, '')) {
+                      updates[f.name] = sumVal;
+                    } else {
+                      updates[f.name] = 0;
+                    }
+                    newAutoFilled.add(f.name); // NOVO: označi kao automatski popunjeno
+                  }
+                }
+              }
+            });
+            // --- KRAJ evaluacije formula ---
+            if (Object.keys(updates).length > 0) {
+              setFormData(prev => ({ ...prev, ...updates }));
+              setAutoFilledFields(newAutoFilled); // NOVO: postavi automatski popunjena polja
+              toast.success('Podaci iz baze su automatski popunjeni!');
+            }
+          }
+        } else {
+          toast.error('Nema podataka za uneseni kod.');
+        }
+      } catch (err) {
+        toast.error('Greška pri dohvatu podataka iz baze.');
+      } finally {
+        setIsLoadingData(false); // NOVO: ukloni loading indikator
+      }
     }
   };
 
@@ -303,6 +440,19 @@ export default function FormPage({ params }: { params: { id: string } }) {
     doc.save(`${form.name.replace(/\s+/g, '_')}.pdf`);
   };
   
+  // Export tabele u CSV
+  const exportTableToCSV = () => {
+    if (!tableData || tableData.length === 0) return;
+    const cols = Object.keys(tableData[0]);
+    const csvRows = [cols.join(',')];
+    tableData.forEach(row => {
+      csvRows.push(cols.map(col => JSON.stringify(row[col] ?? '')).join(','));
+    });
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'tabela.csv');
+  };
+
   if (!isHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -417,8 +567,97 @@ export default function FormPage({ params }: { params: { id: string } }) {
                       isInputMode={true}
                       value={formData[field.name]}
                       onChange={handleInputChange}
+                      isAutoFilled={autoFilledFields.has(field.name)} // NOVO: proslijedi flag za highlight
                     />
                   ))}
+                  {/* NOVO: loading indikator */}
+                  {isLoadingData && (
+                    <div className="flex items-center justify-center p-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-2 text-sm text-gray-600">Učitavanje podataka...</span>
+                    </div>
+                  )}
+                  {/* NOVO: prikaz tabele ako ima više redova */}
+                  {tableData.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-lg font-bold mb-2">Stavke iz baze</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border border-gray-300 rounded-lg">
+                          <thead>
+                            <tr>
+                              {Object.keys(tableData[0]).map((col, idx) => (
+                                <th key={idx} className="px-4 py-2 border-b bg-gray-100 text-xs font-semibold text-gray-700">{col}</th>
+                              ))}
+                              <th className="px-4 py-2 border-b bg-gray-100"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tableData.map((row, rowIdx) => (
+                              <tr key={rowIdx} className="hover:bg-blue-50">
+                                {Object.keys(row).map((col, colIdx) => (
+                                  <td key={colIdx} className="px-4 py-2 border-b">
+                                    <input
+                                      type="text"
+                                      value={row[col] ?? ''}
+                                      onChange={e => {
+                                        const newTable = [...tableData];
+                                        newTable[rowIdx][col] = e.target.value;
+                                        setTableData(newTable);
+                                      }}
+                                      className="w-full p-1 border border-gray-200 rounded"
+                                    />
+                                  </td>
+                                ))}
+                                <td className="px-2 py-2 border-b">
+                                  <button
+                                    type="button"
+                                    className="text-red-500 hover:text-red-700 text-xs"
+                                    onClick={() => {
+                                      const newTable = tableData.filter((_, i) => i !== rowIdx);
+                                      setTableData(newTable);
+                                    }}
+                                  >Obriši</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <button
+                          type="button"
+                          className="mt-2 btn-secondary"
+                          onClick={() => {
+                            if (tableData.length > 0) {
+                              const emptyRow = Object.fromEntries(Object.keys(tableData[0]).map(k => [k, '']));
+                              setTableData([...tableData, emptyRow]);
+                            }
+                          }}
+                        >Dodaj red</button>
+                        <button
+                          type="button"
+                          className="mt-2 ml-2 btn-secondary"
+                          onClick={exportTableToCSV}
+                        >Export u Excel (CSV)</button>
+                      </div>
+                      {/* NOVO: unos i prikaz formula */}
+                      <div className="mt-4 space-y-2">
+                        <h4 className="text-sm font-semibold">Rezultati formula:</h4>
+                        <textarea
+                          className="w-full p-2 border border-gray-300 rounded mb-2 text-xs font-mono"
+                          rows={tableFormulas.length + 1}
+                          value={tableFormulas.join('\n')}
+                          onChange={e => setTableFormulas(e.target.value.split('\n').map(f => f.trim()).filter(Boolean))}
+                          placeholder={"Unesite formule, npr. =SUM(kolicina)\n=AVERAGE(cijena)"}
+                        />
+                        {tableFormulas.map((f, idx) => (
+                          <div key={idx} className="text-xs bg-gray-100 rounded px-2 py-1">
+                            <span className="font-mono text-blue-700">{f}</span>: <span className="font-bold text-gray-800">{evaluateTableFormula(f)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* KRAJ formula */}
+                    </div>
+                  )}
+                  {/* KRAJ tabele */}
                   <div className="flex items-center gap-4 pt-4 no-print no-print-pdf">
                     <button 
                         type="submit" 

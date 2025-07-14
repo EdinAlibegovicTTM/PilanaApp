@@ -11,7 +11,9 @@ export type FieldType =
   | 'formula'
   | 'smart-dropdown'
   | 'textarea'
-  | 'checkbox';
+  | 'checkbox'
+  | 'dinamicko-polje'
+  | 'qr-generator'; // Dodano za generator QR koda
 
 // Field Options
 export interface FieldOptions {
@@ -59,6 +61,22 @@ export interface FieldOptions {
       formula: string;
       description: string;
     }[];
+  };
+  // Dinamičko polje opcije
+  dynamicSource?: {
+    label?: string; // Prikazni naziv polja
+    sourceType: 'ponuda' | 'radni-nalog' | 'custom' | string; // Izvor podataka
+    scanEnabled?: boolean; // Da li prikazati dugme skeniraj
+    inputEnabled?: boolean; // Da li prikazati polje za upis
+    uniqueFormula?: string; // Formula za unique vrijednost
+    sumifsFormula?: string; // Formula za sumifs
+    targetColumn?: string; // Kolona na koju se formula primjenjuje
+  };
+  // QR generator opcije
+  qrGeneratorConfig?: {
+    mode: 'random' | 'params' | 'manual';
+    params?: string[]; // Lista polja/kolona koje ulaze u QR kod
+    value?: string; // Ručno unesena ili generisana vrijednost
   };
 }
 

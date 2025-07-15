@@ -313,6 +313,12 @@ export default function FormPage({ params }: { params: { id: string } }) {
     }
   };
 
+  // --- NOVO: helper za dohvat columnsMap za dinamičko polje ---
+  function getDynamicFieldColumnsMap(form: FormConfig) {
+    const dynField = form?.fields?.find((f: FormField) => f.type === 'dinamicko-polje' && f.options.dynamicSource?.columnsMap);
+    return dynField?.options.dynamicSource?.columnsMap || null;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !form || isSubmitting) {
@@ -365,7 +371,20 @@ export default function FormPage({ params }: { params: { id: string } }) {
       form.fields.forEach(field => {
         // formData koristi field.name kao kljuc
         if (updatedFormData[field.name] !== undefined) {
-          values[field.id] = updatedFormData[field.name];
+          // --- NOVO: za dinamicko polje, koristi samo send: true kolone iz tabele ---
+          if (field.type === 'dinamicko-polje' && tableData.length > 0) {
+            const columnsMap = field.options.dynamicSource?.columnsMap;
+            const sendCols = columnsMap ? columnsMap.filter(c => c.send) : Object.keys(tableData[0]).map(col => ({ column: col }));
+            // Pripremi podatke za slanje: niz objekata sa samo send kolonama
+            const filteredTable = tableData.map(row => {
+              const obj: Record<string, any> = {};
+              sendCols.forEach(col => { obj[col.column] = row[col.column]; });
+              return obj;
+            });
+            values[field.id] = filteredTable;
+          } else {
+            values[field.id] = updatedFormData[field.name];
+          }
         }
       });
       
@@ -582,52 +601,71 @@ export default function FormPage({ params }: { params: { id: string } }) {
                     <div className="mt-8">
                       <h3 className="text-lg font-bold mb-2">Stavke iz baze</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border border-gray-300 rounded-lg">
-                          <thead>
-                            <tr>
-                              {Object.keys(tableData[0]).map((col, idx) => (
-                                <th key={idx} className="px-4 py-2 border-b bg-gray-100 text-xs font-semibold text-gray-700">{col}</th>
-                              ))}
-                              <th className="px-4 py-2 border-b bg-gray-100"></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tableData.map((row, rowIdx) => (
-                              <tr key={rowIdx} className="hover:bg-blue-50">
-                                {Object.keys(row).map((col, colIdx) => (
-                                  <td key={colIdx} className="px-4 py-2 border-b">
-                                    <input
-                                      type="text"
-                                      value={row[col] ?? ''}
-                                      onChange={e => {
-                                        const newTable = [...tableData];
-                                        newTable[rowIdx][col] = e.target.value;
-                                        setTableData(newTable);
-                                      }}
-                                      className="w-full p-1 border border-gray-200 rounded"
-                                    />
-                                  </td>
+                        {(() => {
+                          // --- NOVO: koristi columnsMap za prikaz ---
+                          const columnsMap = getDynamicFieldColumnsMap(form);
+                          const visibleCols = columnsMap ? columnsMap.filter((c: any) => c.show) : Object.keys(tableData[0]).map((col: string) => ({ column: col, label: col, editable: true, readOnly: false, send: true }));
+                          return (
+                            <table className="min-w-full border border-gray-300 rounded-lg">
+                              <thead>
+                                <tr>
+                                  {visibleCols.map((col: any, idx: number) => (
+                                    <th key={idx} className="px-4 py-2 border-b bg-gray-100 text-xs font-semibold text-gray-700">{col.label || col.column}</th>
+                                  ))}
+                                  <th className="px-4 py-2 border-b bg-gray-100"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tableData.map((row, rowIdx) => (
+                                  <tr key={rowIdx} className="hover:bg-blue-50">
+                                    {visibleCols.map((col: any, colIdx: number) => (
+                                      <td key={colIdx} className="px-4 py-2 border-b">
+                                        {col.editable ? (
+                                          <input
+                                            type="text"
+                                            value={row[col.column] ?? ''}
+                                            onChange={e => {
+                                              const newTable = [...tableData];
+                                              newTable[rowIdx][col.column] = e.target.value;
+                                              setTableData(newTable);
+                                            }}
+                                            className="w-full p-1 border border-gray-200 rounded"
+                                            readOnly={!!col.readOnly}
+                                          />
+                                        ) : (
+                                          <input
+                                            type="text"
+                                            value={row[col.column] ?? ''}
+                                            readOnly
+                                            className="w-full p-1 border border-gray-200 rounded bg-gray-100 text-gray-500"
+                                          />
+                                        )}
+                                      </td>
+                                    ))}
+                                    <td className="px-2 py-2 border-b">
+                                      <button
+                                        type="button"
+                                        className="text-red-500 hover:text-red-700 text-xs"
+                                        onClick={() => {
+                                          const newTable = tableData.filter((_, i) => i !== rowIdx);
+                                          setTableData(newTable);
+                                        }}
+                                      >Obriši</button>
+                                    </td>
+                                  </tr>
                                 ))}
-                                <td className="px-2 py-2 border-b">
-                                  <button
-                                    type="button"
-                                    className="text-red-500 hover:text-red-700 text-xs"
-                                    onClick={() => {
-                                      const newTable = tableData.filter((_, i) => i !== rowIdx);
-                                      setTableData(newTable);
-                                    }}
-                                  >Obriši</button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                              </tbody>
+                            </table>
+                          );
+                        })()}
                         <button
                           type="button"
                           className="mt-2 btn-secondary"
                           onClick={() => {
                             if (tableData.length > 0) {
-                              const emptyRow = Object.fromEntries(Object.keys(tableData[0]).map(k => [k, '']));
+                              const columnsMap = getDynamicFieldColumnsMap(form);
+                              const visibleCols = columnsMap ? columnsMap.filter((c: any) => c.show) : Object.keys(tableData[0]).map((col: string) => ({ column: col }));
+                              const emptyRow = Object.fromEntries(visibleCols.map((c: any) => [c.column, '']));
                               setTableData([...tableData, emptyRow]);
                             }
                           }}

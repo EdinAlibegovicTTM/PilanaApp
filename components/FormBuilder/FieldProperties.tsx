@@ -523,105 +523,109 @@ export default function FieldProperties({ field, onUpdate, onDelete, onClose }: 
               <div className="mt-4">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Mapiranje kolona (napredno)</label>
                 <div className="space-y-2">
-                  {(localField.options.dynamicSource?.columnsMap || []).map((col, idx) => (
-                    <div key={idx} className="flex flex-wrap gap-2 items-center border-b pb-2 mb-2">
-                      <input
-                        type="text"
-                        className="input-field w-24"
-                        value={col.column || ''}
-                        onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].column = e.target.value;
+                  {(() => {
+                    const columnsMap = localField.options.dynamicSource?.columnsMap || [];
+                    return columnsMap.map((col, idx) => (
+                      <div key={idx} className="flex flex-wrap gap-2 items-center border-b pb-2 mb-2">
+                        <input
+                          type="text"
+                          className="input-field w-24"
+                          value={col.column || ''}
+                          onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].column = e.target.value;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }}
+                          placeholder="Kolona (npr. B)"
+                        />
+                        <input
+                          type="text"
+                          className="input-field w-32"
+                          value={col.label || ''}
+                          onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].label = e.target.value;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }}
+                          placeholder="Naziv za prikaz"
+                        />
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="radio" name={`searchCol${localField.id}`} checked={!!col.isSearch} onChange={() => {
+                            const newMap = columnsMap.map((c, i) => ({ ...c, isSearch: i === idx }));
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> Pretraga
+                        </label>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="radio" name={`uniqueCol${localField.id}`} checked={!!col.isUnique} onChange={() => {
+                            const newMap = columnsMap.map((c, i) => ({ ...c, isUnique: i === idx }));
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> Unique
+                        </label>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="checkbox" checked={!!col.show} onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].show = e.target.checked;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> Prikaz
+                        </label>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="checkbox" checked={!!col.editable} onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].editable = e.target.checked;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> Editable
+                        </label>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="checkbox" checked={!!col.readOnly} onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].readOnly = e.target.checked;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> ReadOnly
+                        </label>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input type="checkbox" checked={!!col.send} onChange={e => {
+                            const newMap = [...columnsMap];
+                            newMap[idx].send = e.target.checked;
+                            handleOptionChange('dynamicSource', {
+                              ...localField.options.dynamicSource,
+                              columnsMap: newMap
+                            });
+                          }} /> Šalji
+                        </label>
+                        <button type="button" className="text-red-500 ml-2" onClick={() => {
+                          const newMap = columnsMap.filter((_, i) => i !== idx);
                           handleOptionChange('dynamicSource', {
                             ...localField.options.dynamicSource,
                             columnsMap: newMap
                           });
-                        }}
-                        placeholder="Kolona (npr. B)"
-                      />
-                      <input
-                        type="text"
-                        className="input-field w-32"
-                        value={col.label || ''}
-                        onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].label = e.target.value;
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }}
-                        placeholder="Naziv za prikaz"
-                      />
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="radio" name={`searchCol${localField.id}`} checked={!!col.isSearch} onChange={() => {
-                          const newMap = (localField.options.dynamicSource?.columnsMap || []).map((c, i) => ({ ...c, isSearch: i === idx }));
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> Pretraga
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="radio" name={`uniqueCol${localField.id}`} checked={!!col.isUnique} onChange={() => {
-                          const newMap = (localField.options.dynamicSource?.columnsMap || []).map((c, i) => ({ ...c, isUnique: i === idx }));
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> Unique
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="checkbox" checked={!!col.show} onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].show = e.target.checked;
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> Prikaz
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="checkbox" checked={!!col.editable} onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].editable = e.target.checked;
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> Editable
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="checkbox" checked={!!col.readOnly} onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].readOnly = e.target.checked;
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> ReadOnly
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="checkbox" checked={!!col.send} onChange={e => {
-                          const newMap = [...(localField.options.dynamicSource?.columnsMap || [])];
-                          newMap[idx].send = e.target.checked;
-                          handleOptionChange('dynamicSource', {
-                            ...localField.options.dynamicSource,
-                            columnsMap: newMap
-                          });
-                        }} /> Šalji
-                      </label>
-                      <button type="button" className="text-red-500 ml-2" onClick={() => {
-                        const newMap = (localField.options.dynamicSource?.columnsMap || []).filter((_, i) => i !== idx);
-                        handleOptionChange('dynamicSource', {
-                          ...localField.options.dynamicSource,
-                          columnsMap: newMap
-                        });
-                      }}>Obriši</button>
-                    </div>
-                  ))}
+                        }}>Obriši</button>
+                      </div>
+                    ));
+                  })()}
                   <button type="button" className="btn-secondary mt-2" onClick={() => {
-                    const newMap = [...(localField.options.dynamicSource?.columnsMap || []), { column: '', label: '', show: true, editable: false, readOnly: false, send: false }];
+                    const columnsMap = localField.options.dynamicSource?.columnsMap || [];
+                    const newMap = [...columnsMap, { column: '', label: '', show: true, editable: false, readOnly: false, send: false }];
                     handleOptionChange('dynamicSource', {
                       ...localField.options.dynamicSource,
                       columnsMap: newMap

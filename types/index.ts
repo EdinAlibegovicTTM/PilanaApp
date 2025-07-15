@@ -71,6 +71,16 @@ export interface FieldOptions {
     uniqueFormula?: string; // Formula za unique vrijednost
     sumifsFormula?: string; // Formula za sumifs
     targetColumn?: string; // Kolona na koju se formula primjenjuje
+    columnsMap?: Array<{
+      column: string;
+      label?: string;
+      isSearch?: boolean;
+      isUnique?: boolean;
+      show?: boolean;
+      editable?: boolean;
+      readOnly?: boolean;
+      send?: boolean;
+    }>;
   };
   // QR generator opcije
   qrGeneratorConfig?: {

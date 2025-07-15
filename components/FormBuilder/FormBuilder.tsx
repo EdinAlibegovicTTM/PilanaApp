@@ -111,7 +111,7 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
   };
 
   const getFieldTypeLabel = (type: FieldType): string => {
-    const labels = {
+    const labels: Record<FieldType, string> = {
       text: 'tekst',
       number: 'broj',
       date: 'datum',
@@ -124,6 +124,8 @@ export default function FormBuilder({ formConfig, onSave, extraAction }: FormBui
       'smart-dropdown': 'pametnu listu',
       textarea: 'tekstualno polje',
       checkbox: 'checkbox',
+      'dinamicko-polje': 'dinamičko polje',
+      'qr-generator': 'generator QR koda',
     };
     return labels[type] || 'vrijednost';
   };
